@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Stop Slop — Cognitive Writing & Voice Studio</title>
-  <meta name="description" content="Eliminate AI writing patterns and restore authentic human voice using author persona modeling and a 4-pass cognitive engine." />
+  <title>Stop Slop — Cognitive Voice & Anti-Slop Studio</title>
+  <meta name="description" content="Eliminate artificial AI writing patterns and restore authentic human voice using author persona modeling and a 4-pass cognitive engine." />
   
   <!-- PWA Manifest & Icons -->
   <link rel="manifest" href="./manifest.webmanifest" />
@@ -24,11 +24,11 @@
   <header class="app-header">
     <div class="header-left">
       <div class="brand-logo-container">
-        <img src="./icon.svg" alt="Stop Slop Logo" class="brand-logo" width="36" height="36" />
+        <img src="./icon.svg" alt="Stop Slop Logo" class="brand-logo" width="34" height="34" />
         <div class="brand-titles">
           <div class="brand-name-row">
             <span class="brand-name">Stop Slop</span>
-            <span class="brand-badge">v4.0.0</span>
+            <span class="brand-badge">v4.1.0</span>
           </div>
           <span class="brand-subtitle">Cognitive Voice & Anti-Slop Studio</span>
         </div>
@@ -45,7 +45,7 @@
 
     <div class="header-right">
       <button id="pwa-install-btn" class="header-action-btn hidden" title="Install App to Desktop/Mobile">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         <span>Install App</span>
       </button>
       <a href="https://github.com/professorgeorge/stop-slop" target="_blank" rel="noopener noreferrer" class="header-icon-link" title="View on GitHub">
@@ -54,97 +54,300 @@
     </div>
   </header>
 
-  <!-- Main Content Layout -->
+  <!-- Guided 3-Stage Workflow Navigation Bar -->
+  <nav class="workflow-stepper-bar">
+    <div class="stepper-inner-container">
+      <button class="stage-nav-item active" data-stage="1" id="nav-stage-1">
+        <div class="stage-num-badge">1</div>
+        <div class="stage-nav-content">
+          <span class="stage-nav-title">Author Voice</span>
+          <span class="stage-nav-sub" id="active-voice-pill">Active: Systems Engineer</span>
+        </div>
+      </button>
+
+      <div class="stage-connector-arrow">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+      </div>
+
+      <button class="stage-nav-item" data-stage="2" id="nav-stage-2">
+        <div class="stage-num-badge">2</div>
+        <div class="stage-nav-content">
+          <span class="stage-nav-title">Target Draft</span>
+          <span class="stage-nav-sub" id="draft-status-pill">Ready to scan • 0 words</span>
+        </div>
+      </button>
+
+      <div class="stage-connector-arrow">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+      </div>
+
+      <button class="stage-nav-item" data-stage="3" id="nav-stage-3">
+        <div class="stage-num-badge">3</div>
+        <div class="stage-nav-content">
+          <span class="stage-nav-title">Mastering Studio</span>
+          <span class="stage-nav-sub" id="result-status-pill">Diff & Stylometrics</span>
+        </div>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main Multi-Stage Studio Workspace -->
   <main class="app-main">
-    <div class="workspace-grid">
-      
-      <!-- Left Column: Input & Author Persona Control -->
-      <section class="panel input-panel">
-        <div class="panel-header">
-          <div class="panel-title-group">
-            <h2 class="panel-title">Original Content</h2>
-            <span class="panel-badge" id="input-stats-badge">0 words</span>
+
+    <!-- =========================================================================
+         STAGE 1: ESTABLISH AUTHOR VOICE (WHO IS WRITING?)
+         ========================================================================= -->
+    <section class="stage-section" id="stage-panel-1">
+      <div class="stage-card-wrapper">
+        <div class="stage-intro-header">
+          <div class="intro-titles">
+            <span class="stage-tag">Stage 1 of 3</span>
+            <h1 class="stage-heading">Establish Author Voice</h1>
+            <p class="stage-subtitle">
+              Authentic writing requires an author model with distinct beliefs, cadence, and vocabulary habits. Calibrate with your own writing, choose a pre-AI master, or select an operational archetype.
+            </p>
           </div>
-          <div class="panel-actions">
+        </div>
+
+        <!-- Active Voice Dashboard Card -->
+        <div class="active-voice-hero-card" id="active-voice-card">
+          <div class="hero-card-left">
+            <div class="hero-badge-row">
+              <span class="hero-voice-badge" id="hero-voice-badge">🛠️ Operational Systems Engineer</span>
+              <span class="hero-era-badge" id="hero-era-badge">Operational Archetype</span>
+              <span class="hero-persisted-pill hidden" id="hero-persisted-pill">✓ Saved Voice</span>
+            </div>
+            <h3 class="hero-voice-name" id="hero-voice-name">Systems Engineer</h3>
+            <p class="hero-voice-desc" id="hero-voice-desc">
+              Grounds claims in concrete runtime trade-offs, failure modes, deploy latency, and operational reality.
+            </p>
+            <div class="hero-traits-row" id="hero-traits-container">
+              <span class="trait-pill">Operational Practitioner</span>
+              <span class="trait-pill">High Repetition Tolerance</span>
+              <span class="trait-pill">Asymmetric Paragraphs</span>
+            </div>
+          </div>
+          <div class="hero-card-right">
+            <button type="button" id="toggle-hero-yaml-btn" class="btn btn-secondary btn-sm">
+              📄 View Voice Card YAML
+            </button>
+            <button type="button" id="clear-custom-voice-btn" class="btn btn-secondary btn-sm hidden" style="color:var(--accent-rose);border-color:rgba(244,63,94,0.3);">
+              🗑️ Clear My Voice
+            </button>
+          </div>
+        </div>
+
+        <pre id="persona-card-yaml" class="yaml-viewer hidden"></pre>
+
+        <!-- Voice Selection Category Tabs -->
+        <div class="voice-picker-container">
+          <div class="voice-tabs-nav">
+            <button class="voice-tab active" data-vtab="my-voice">
+              👤 My Writing Voice (Extract & Save)
+            </button>
+            <button class="voice-tab" data-vtab="classic-masters">
+              📜 Classic Pre-AI Masters (Public Domain)
+            </button>
+            <button class="voice-tab" data-vtab="modern-archetypes">
+              🛠️ Modern Field Archetypes
+            </button>
+          </div>
+
+          <!-- Tab 1: My Writing Voice (Custom Calibration & Persistence) -->
+          <div class="voice-tab-pane active" id="vpane-my-voice">
+            <div class="custom-voice-setup-grid">
+              <div class="setup-guide-col">
+                <div class="guide-feature-box">
+                  <h4>💡 Why calibrate your voice?</h4>
+                  <p>
+                    Paste 1–2 paragraphs of something you actually wrote (an old blog post, email, research excerpt, or GitHub PR), or drop a file.
+                  </p>
+                  <p>
+                    The engine infers your <strong>Author DNA Card</strong> (epistemic stance, cadence, jargon tolerance) and <strong>saves it in your browser</strong> so every draft you sanitize matches your personal voice until you choose to clear it.
+                  </p>
+                </div>
+              </div>
+
+              <div class="setup-input-col">
+                <!-- Drop Zone for Voice Sample -->
+                <div class="file-dropzone" id="voice-dropzone">
+                  <input type="file" id="voice-file-input" class="hidden-file-input" accept=".txt,.md,.text" />
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  <span>Drop your past writing sample file (.md, .txt) here, or browse</span>
+                </div>
+
+                <div class="form-group" style="margin-top:12px;">
+                  <label for="sample-author-text">Or paste your genuine writing sample:</label>
+                  <textarea id="sample-author-text" class="prose-textarea sample-input" placeholder="Paste 1–2 paragraphs of something you wrote before ChatGPT existed, or a genuine personal note/article..."></textarea>
+                </div>
+
+                <div class="voice-actions-row">
+                  <button type="button" id="extract-save-voice-btn" class="btn btn-primary">
+                    ✨ Analyze & Save My Voice DNA
+                  </button>
+                  <span id="custom-voice-status-msg" class="status-msg"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 2: Classic Pre-AI Masters -->
+          <div class="voice-tab-pane hidden" id="vpane-classic-masters">
+            <p class="tab-explainer">
+              These historical personas use <strong>authentic writing from before generative AI existed</strong> (1912–1986). They provide proven, authentic human cadences across philosophy, clear exposition, physics pedagogy, systems engineering, and cultural inquiry.
+            </p>
+            <div class="persona-cards-grid" id="classic-masters-grid">
+              <!-- Populated via JS -->
+            </div>
+          </div>
+
+          <!-- Tab 3: Modern Field Archetypes -->
+          <div class="voice-tab-pane hidden" id="vpane-modern-archetypes">
+            <p class="tab-explainer">
+              Pre-calibrated operational stances for engineering memos, academic publications, executive strategy, and technical mentoring.
+            </p>
+            <div class="persona-cards-grid" id="modern-archetypes-grid">
+              <!-- Populated via JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Stage 1 Footer Navigation -->
+        <div class="stage-footer-bar">
+          <div class="stage-footer-info">
+            Selected: <strong id="stage-footer-voice-label">Operational Systems Engineer</strong>
+          </div>
+          <button type="button" id="goto-stage-2-btn" class="btn btn-primary">
+            Next: Load Target Draft →
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================================
+         STAGE 2: TARGET DRAFT TO SANITIZE (WHAT ARE WE SANITIZING?)
+         ========================================================================= -->
+    <section class="stage-section hidden" id="stage-panel-2">
+      <div class="stage-card-wrapper">
+        <div class="stage-intro-header">
+          <div class="intro-titles">
+            <span class="stage-tag">Stage 2 of 3</span>
+            <h1 class="stage-heading">Target Draft to Sanitize</h1>
+            <p class="stage-subtitle">
+              Paste your draft, load a sample, or drop a file (.md, .txt). The live radar automatically audits synthetic tells and AI clichés.
+            </p>
+          </div>
+          <div class="stage-intro-actions">
             <!-- Preset Selector -->
             <select id="preset-selector" class="preset-select" title="Load a demo preset">
-              <option value="" disabled selected>✨ Load a sample draft...</option>
+              <option value="" disabled selected>✨ Load sample draft...</option>
             </select>
-            <button id="clear-input-btn" class="icon-btn" title="Clear text">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+          </div>
+        </div>
+
+        <!-- Draft Input Section -->
+        <div class="draft-workbench-card">
+          <div class="workbench-header">
+            <div class="workbench-meta">
+              <span class="panel-badge" id="input-stats-badge">0 words</span>
+              <span class="panel-file-label hidden" id="loaded-file-name">📄 file.md</span>
+            </div>
+            <div class="workbench-actions">
+              <button id="clear-input-btn" class="icon-btn" title="Clear text">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Drop Zone for Draft -->
+          <div class="file-dropzone draft-dropzone" id="draft-dropzone">
+            <input type="file" id="draft-file-input" class="hidden-file-input" accept=".txt,.md,.text" />
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            <span>Drop draft file (.md, .txt) here to inspect, or paste below</span>
+          </div>
+
+          <div class="textarea-wrapper" style="margin-top:12px;">
+            <textarea id="source-text" class="prose-textarea" placeholder="Paste your essay, scholarly paper abstract, technical memo, or report here to transform it..."></textarea>
+          </div>
+
+          <!-- Live Synthetic Tell Radar -->
+          <div class="live-radar-box" id="live-radar-box">
+            <div class="radar-header">
+              <div class="radar-title-row">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/></svg>
+                <strong>Live Synthetic Tell Radar</strong>
+              </div>
+              <span class="radar-badge" id="radar-tells-badge">0 Tells Detected</span>
+            </div>
+            <div class="radar-findings-chips" id="radar-chips-container">
+              <span class="empty-radar-text">Type or load text above to scan for synthetic AI markers.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stage 2 Footer Navigation -->
+        <div class="stage-footer-bar">
+          <button type="button" id="back-to-stage-1-btn" class="btn btn-secondary">
+            ← Back to Voice Selection
+          </button>
+          <div class="stage-footer-actions">
+            <button id="detect-only-btn" class="btn btn-secondary" title="Audit patterns without rewriting">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <span>Scan Tells Only</span>
+            </button>
+            <button id="run-pipeline-btn" class="btn btn-primary" title="Execute 4-Pass Cognitive Transformation">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              <span id="run-button-label">✨ Humanize in Active Voice →</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================================
+         STAGE 3: MASTERING STUDIO (TRANSFORMATION, DIFF & AUDIT)
+         ========================================================================= -->
+    <section class="stage-section hidden" id="stage-panel-3">
+      <div class="stage-card-wrapper">
+        <div class="stage-intro-header">
+          <div class="intro-titles">
+            <span class="stage-tag">Stage 3 of 3</span>
+            <h1 class="stage-heading">Mastering Studio & Voice Audit</h1>
+            <p class="stage-subtitle">
+              Inspect the 4-pass cognitive execution, compare side-by-side diffs, and evaluate stylometric naturalness.
+            </p>
+          </div>
+          <div class="stage-intro-actions">
+            <button id="back-to-stage-2-btn" class="btn btn-secondary btn-sm">
+              ← Edit Draft
             </button>
           </div>
         </div>
 
-        <div class="textarea-wrapper">
-          <textarea id="source-text" class="prose-textarea" placeholder="Paste your essay, scholarly paper abstract, technical memo, or report here to transform it..."></textarea>
-        </div>
-
-        <!-- Author Persona Selector Section -->
-        <div class="persona-section">
-          <div class="persona-section-header">
-            <div class="persona-title-group">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              <span class="section-label">Author Persona Stance</span>
-            </div>
-            <button id="extract-persona-btn" class="text-link-btn" title="Infer persona from your writing sample">
-              ✨ Extract My Voice
-            </button>
-          </div>
-
-          <div class="persona-chips" id="persona-chips-container">
-            <!-- Populated via JS -->
-          </div>
-
-          <div class="active-persona-summary" id="persona-summary-box">
-            <div class="persona-desc-row">
-              <span id="persona-desc-text">Operational engineering voice: concrete trade-offs, failure modes, zero marketing fluff.</span>
-              <button id="toggle-card-yaml-btn" class="card-toggle-btn">View Card YAML</button>
-            </div>
-            <pre id="persona-card-yaml" class="yaml-viewer hidden"></pre>
-          </div>
-        </div>
-
-        <!-- Execution Action Row -->
-        <div class="input-actions-bar">
-          <button id="detect-only-btn" class="btn btn-secondary" title="Audit patterns without rewriting">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-            <span>Scan AI Tells Only</span>
-          </button>
-          <button id="run-pipeline-btn" class="btn btn-primary" title="Execute 4-Pass Cognitive Transformation">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            <span>Run 4-Pass Rewrite</span>
-          </button>
-        </div>
-      </section>
-
-      <!-- Right Column: Pipeline Stepper & Output Studio -->
-      <section class="panel output-panel">
-        
         <!-- The 4-Pass Cognitive Stepper Bar -->
         <div class="pipeline-stepper" id="pipeline-stepper">
           <div class="step-node" id="step-node-1" data-step="1">
             <div class="step-dot">1</div>
-            <span class="step-label">Substance</span>
+            <span class="step-label">Substance Extraction</span>
           </div>
           <div class="step-connector" id="step-connector-1"></div>
           <div class="step-node" id="step-node-2" data-step="2">
             <div class="step-dot">2</div>
-            <span class="step-label">Persona</span>
+            <span class="step-label">Persona Grounding</span>
           </div>
           <div class="step-connector" id="step-connector-2"></div>
           <div class="step-node" id="step-node-3" data-step="3">
             <div class="step-dot">3</div>
-            <span class="step-label">Draft</span>
+            <span class="step-label">Natural Draft</span>
           </div>
           <div class="step-connector" id="step-connector-3"></div>
           <div class="step-node" id="step-node-4" data-step="4">
             <div class="step-dot">4</div>
-            <span class="step-label">Audit</span>
+            <span class="step-label">Consistency Audit</span>
           </div>
         </div>
 
-        <!-- Intermediate Step Drawer (expandable) -->
+        <!-- Intermediate Step Drawer -->
         <div class="step-details-drawer hidden" id="step-details-drawer">
           <div class="drawer-header">
             <span id="drawer-title" class="drawer-title">Pass 1: Substance Extraction</span>
@@ -154,93 +357,138 @@
         </div>
 
         <!-- Output Tabs & Actions -->
-        <div class="panel-header output-header">
-          <div class="tab-pill-group">
-            <button class="tab-pill active" data-tab="rewrite">Rewritten Prose</button>
-            <button class="tab-pill" data-tab="diff">Before / After Diff</button>
-            <button class="tab-pill" data-tab="stylometrics">Stylometrics & Audit</button>
+        <div class="output-studio-card">
+          <div class="panel-header output-header">
+            <div class="tab-pill-group">
+              <button class="tab-pill active" data-tab="rewrite">Rewritten Prose</button>
+              <button class="tab-pill" data-tab="diff">Before / After Diff</button>
+              <button class="tab-pill" data-tab="stylometrics">Stylometrics & Audit</button>
+            </div>
+
+            <div class="output-actions">
+              <button id="copy-output-btn" class="btn btn-secondary btn-sm" title="Copy to clipboard">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                <span>Copy Prose</span>
+              </button>
+              <button id="download-output-btn" class="btn btn-secondary btn-sm" title="Download Markdown">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <span>Download .md</span>
+              </button>
+            </div>
           </div>
 
-          <div class="output-actions">
-            <button id="copy-output-btn" class="icon-btn" title="Copy to clipboard">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-            </button>
-            <button id="download-output-btn" class="icon-btn" title="Download Markdown">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            </button>
+          <!-- Tab 1: Rewritten Prose -->
+          <div class="tab-pane active" id="tab-pane-rewrite">
+            <div class="output-prose-container" id="output-prose-box">
+              <div class="empty-state">
+                <div class="empty-state-icon">✍️</div>
+                <h3>Ready to Humanize</h3>
+                <p>Proceed from Stage 2 to run the 4-pass cognitive engine. The output will be grounded in your chosen author voice.</p>
+              </div>
+            </div>
           </div>
-        </div>
 
-        <!-- Tab 1: Rewritten Prose -->
-        <div class="tab-pane active" id="tab-pane-rewrite">
-          <div class="output-prose-container" id="output-prose-box">
-            <div class="empty-state">
-              <div class="empty-state-icon">✍️</div>
-              <h3>Ready to Humanize</h3>
-              <p>Load a sample above or paste your text to begin. The engine will extract core substance, apply your selected author persona, and generate natural, unconstrained prose.</p>
+          <!-- Tab 2: Diff Viewer -->
+          <div class="tab-pane hidden" id="tab-pane-diff">
+            <div class="diff-container" id="diff-container">
+              <div class="diff-split-view">
+                <div class="diff-column">
+                  <h4>Original Draft</h4>
+                  <div id="diff-original-content" class="diff-content"></div>
+                </div>
+                <div class="diff-column">
+                  <h4>Humanized Prose</h4>
+                  <div id="diff-transformed-content" class="diff-content"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 3: Stylometrics & Audit -->
+          <div class="tab-pane hidden" id="tab-pane-stylometrics">
+            <div class="stylometrics-container">
+              <!-- Score Cards -->
+              <div class="metrics-grid">
+                <div class="metric-card">
+                  <span class="metric-title">Naturalness Score</span>
+                  <span class="metric-value accent-green" id="metric-score">--</span>
+                  <span class="metric-sub" id="metric-score-delta">Target ≥ 85/100</span>
+                </div>
+                <div class="metric-card">
+                  <span class="metric-title">Type-Token Ratio (TTR)</span>
+                  <span class="metric-value" id="metric-ttr">--</span>
+                  <span class="metric-sub">Human range: 0.45 – 0.65</span>
+                </div>
+                <div class="metric-card">
+                  <span class="metric-title">Burstiness (SD)</span>
+                  <span class="metric-value" id="metric-burstiness">--</span>
+                  <span class="metric-sub">Sentence length variance</span>
+                </div>
+                <div class="metric-card">
+                  <span class="metric-title">Residual AI Tells</span>
+                  <span class="metric-value accent-cyan" id="metric-tells">--</span>
+                  <span class="metric-sub">Target: 0 tells</span>
+                </div>
+              </div>
+
+              <!-- Findings List -->
+              <div class="audit-findings-section">
+                <h4 class="findings-header">Pattern Inspection & Linter Findings</h4>
+                <div class="findings-list" id="findings-list">
+                  <div class="empty-findings">Run an audit or rewrite to inspect detected patterns.</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Tab 2: Diff Viewer -->
-        <div class="tab-pane hidden" id="tab-pane-diff">
-          <div class="diff-container" id="diff-container">
-            <div class="diff-split-view">
-              <div class="diff-column">
-                <h4>Original Text</h4>
-                <div id="diff-original-content" class="diff-content"></div>
-              </div>
-              <div class="diff-column">
-                <h4>Transformed Human Prose</h4>
-                <div id="diff-transformed-content" class="diff-content"></div>
-              </div>
-            </div>
-          </div>
+        <!-- Stage 3 Footer Navigation -->
+        <div class="stage-footer-bar">
+          <button type="button" id="stage-3-back-btn" class="btn btn-secondary">
+            ← Back to Target Draft
+          </button>
+          <button type="button" id="stage-3-restart-btn" class="btn btn-primary">
+            🔄 Re-run Transformation
+          </button>
         </div>
+      </div>
+    </section>
 
-        <!-- Tab 3: Stylometrics & Audit -->
-        <div class="tab-pane hidden" id="tab-pane-stylometrics">
-          <div class="stylometrics-container">
-            <!-- Score Cards -->
-            <div class="metrics-grid">
-              <div class="metric-card">
-                <span class="metric-title">Naturalness Score</span>
-                <span class="metric-value accent-green" id="metric-score">--</span>
-                <span class="metric-sub" id="metric-score-delta">Target ≥ 85/100</span>
-              </div>
-              <div class="metric-card">
-                <span class="metric-title">Type-Token Ratio (TTR)</span>
-                <span class="metric-value" id="metric-ttr">--</span>
-                <span class="metric-sub">Human range: 0.45 – 0.65</span>
-              </div>
-              <div class="metric-card">
-                <span class="metric-title">Burstiness (SD)</span>
-                <span class="metric-value" id="metric-burstiness">--</span>
-                <span class="metric-sub">Sentence length variance</span>
-              </div>
-              <div class="metric-card">
-                <span class="metric-title">Residual AI Tells</span>
-                <span class="metric-value accent-cyan" id="metric-tells">--</span>
-                <span class="metric-sub">Target: 0 tells</span>
-              </div>
-            </div>
-
-            <!-- Findings List -->
-            <div class="audit-findings-section">
-              <h4 class="findings-header">Pattern Inspection & Linter Findings</h4>
-              <div class="findings-list" id="findings-list">
-                <div class="empty-findings">Run an audit or rewrite to inspect detected patterns.</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </section>
-
-    </div>
   </main>
 
-  <!-- LLM Engine Configuration Modal -->
+  <!-- =========================================================================
+       HISTORICAL PRE-AI SAMPLE PREVIEW MODAL
+       ========================================================================= -->
+  <div class="modal-overlay hidden" id="excerpt-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title" id="excerpt-modal-title">Pre-AI Historical Writing Sample</h3>
+        <button id="close-excerpt-modal-btn" class="icon-btn">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="excerpt-badge-row">
+          <span class="hero-voice-badge" id="excerpt-author-name">Bertrand Russell</span>
+          <span class="hero-era-badge" id="excerpt-era">1912 (Pre-AI)</span>
+          <span class="trait-pill" id="excerpt-domain">Philosophy & Rigorous Logic</span>
+        </div>
+        <p class="provider-help" style="margin-top:8px;">
+          This authentic pre-AI writing sample calibrates the cognitive engine with genuine human cadence, concrete nouns, and zero synthetic clichés:
+        </p>
+        <blockquote class="historical-blockquote" id="excerpt-quote-text">
+          <!-- Populated via JS -->
+        </blockquote>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="select-excerpt-voice-btn" class="btn btn-primary">
+          ✓ Calibrate With This Master's Voice
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       LLM ENGINE CONFIGURATION MODAL (WebLLM, Ollama, Gemini, etc.)
+       ========================================================================= -->
   <div class="modal-overlay hidden" id="engine-modal">
     <div class="modal-card">
       <div class="modal-header">
@@ -410,28 +658,6 @@
 
       <div class="modal-footer">
         <button id="save-engine-btn" class="btn btn-primary">Save & Connect</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Custom Persona Extraction Modal -->
-  <div class="modal-overlay hidden" id="persona-modal">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h3 class="modal-title">Extract My Author Voice</h3>
-        <button id="close-persona-modal-btn" class="icon-btn">✕</button>
-      </div>
-      <div class="modal-body">
-        <p class="provider-help">
-          Paste 1–2 paragraphs of something you actually wrote (an old blog post, email, research excerpt, or GitHub PR). The engine will analyze your cadence, epistemic stance, and vocabulary preferences to build a custom <strong>Author Card</strong>.
-        </p>
-        <div class="form-group">
-          <label for="sample-author-text">Your Writing Sample</label>
-          <textarea id="sample-author-text" class="prose-textarea sample-input" placeholder="Paste your genuine writing sample here..."></textarea>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button id="generate-custom-persona-btn" class="btn btn-primary">Analyze & Apply My Persona</button>
       </div>
     </div>
   </div>

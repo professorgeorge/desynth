@@ -2,6 +2,22 @@
 
 export const PRESETS = [
   {
+    id: 'philosophy-essay',
+    title: 'Philosophy & Epistemology Draft (Pairs with Bertrand Russell)',
+    personaId: 'bertrand-russell',
+    input: `In today's fast-paced intellectual landscape, the intricate tapestry of consciousness serves as a profound testament to the multifaceted nature of human cognition. It's not just about neural pathways; it's about the holistic paradigm of subjective being. Delving deep into Cartesian dualism, we embark on a transformative journey where matter and mind seamlessly intertwine. At its core, the problem of qualia underscores a pivotal watershed moment for epistemology. Let that sink in: could our sensory realities ultimately be nothing more than an emergent phenomenon? The future of philosophy looks bright indeed.`,
+    demoSubstance: `The mind-body problem inquires whether mental events (such as sensory perceptions) can be fully explained by physical states of the nervous system. While physicalism accounts for measurable brain activity, it fails to provide a logical deduction from physiological data to subjective qualitative experience. This gap implies that either physical concepts are incomplete or mental entities constitute a separate category of relations.`,
+    demoRewrite: `The relation between mind and matter remains one of the central difficulties in theory of knowledge. When light strikes the retina, a physical disturbance travels along the nerves into the brain; yet no examination of the cerebral tissue reveals the sensation of blue itself. We are acquainted directly with our private data of sense, whereas our knowledge of physical objects is inferred and precarious. It is therefore a fallacy to assume that matter is better understood than mind, or that conscious sensations can be dissolved without remainder into spatial movements.`
+  },
+  {
+    id: 'bureaucratic-policy',
+    title: 'Bureaucratic Policy Memo (Pairs with George Orwell)',
+    personaId: 'george-orwell',
+    input: `In order to optimize our cross-functional synergies, the executive committee has deemed it appropriate to commence an overarching review of legacy procedures. Due to the fact that current operational paradigms boast various suboptimal inefficiencies, it serves as a critical imperative that leadership utilize robust strategic levers to streamline workflows. Underscoring our comprehensive commitment to excellence, this initiative is poised to become a game-changer across the entire ecosystem. As of my last update, stakeholder alignment is paramount.`,
+    demoSubstance: `The committee is reviewing office purchasing procedures because managers currently spend three weeks waiting for approvals on basic supplies. We recommend raising the petty expense threshold from $50 to $500, which will eliminate 80% of required purchase orders.`,
+    demoRewrite: `We should cut the approvals needed for small purchases. Today, a manager must fill out three forms and wait three weeks to buy a ten-dollar box of printer paper. If we let department heads spend up to five hundred dollars on their own authority, we will do away with four out of five purchase orders and save hundreds of working hours every month.`
+  },
+  {
     id: 'scholarly-paper',
     title: 'Scholarly Paper Abstract (Bio-informatics / ML)',
     personaId: 'scholarly-researcher',
@@ -16,14 +32,6 @@ export const PRESETS = [
     input: `In today's fast-paced digital landscape, maintaining developer velocity is a paramount concern for modern engineering leaders. However, monolithic architectures often serve as a bottleneck, hindering rapid iteration. By embracing microservices, organizations can unlock unprecedented scalability and empower cross-functional teams to innovate seamlessly. At its core, this architectural paradigm shift is not just about code—it is about fostering a culture of agility. The kicker? Teams that embark on this journey find that their deployment bandwidth improves dramatically. Only time will tell how this transformative shift impacts the broader software ecosystem.`,
     demoSubstance: `Monolith deployment queues bottlenecked developers as team size grew past 40 engineers. A broken test in billing would block search engineers from shipping for two days. Splitting the ingest and billing workers into separate services gave each team their own deploy pipeline, cutting average queue time from four hours to twelve minutes.`,
     demoRewrite: `As the engineering team crossed forty people, our single Rails repo became the main constraint on shipping. A broken test in billing would block the search team from deploying for two days. Splitting the ingest and billing workers into separate services gave each team their own deploy pipeline, which brought average deploy queue time from four hours down to twelve minutes.`
-  },
-  {
-    id: 'executive-memo',
-    title: 'Executive Decision Memo (Product Deprecation)',
-    personaId: 'executive-decision',
-    input: `To be completely transparent, let me be clear: navigating legacy infrastructure is a genuinely daunting endeavor that requires a holistic strategic lens. The reality is that our v1 ingest pipeline has been a cornerstone of our technical tapestry for years, but the stakes are higher than ever. It's worth noting that while some customers deeply cherish its robust capabilities, maintaining dual environments could potentially hinder our long-term trajectory. Make no mistake: deprecating v1 represents a pivotal watershed moment that will empower our teams to double down on cutting-edge features. [Describe the specific migration timeline here].`,
-    demoSubstance: `Recommendation to deprecate the v1 ingest pipeline in Q3. Three enterprise customers still send traffic to v1, but maintaining dual schemas consumes 20 engineering hours per sprint and accounts for 40% of on-call pages. Migration documentation has been shared with all three accounts.`,
-    demoRewrite: `We should deprecate the v1 ingest pipeline on September 30. Three customers still route traffic through it (Acme, Velo, and NorthStar), but supporting the dual schema costs roughly twenty engineering hours every sprint and caused three of our last seven on-call pages. Engineering has prepared automated migration scripts and sent integration timelines to all three accounts.`
   },
   {
     id: 'candid-essay',
