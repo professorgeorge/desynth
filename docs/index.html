@@ -17,8 +17,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 
-  <script type="module" crossorigin src="./assets/index-CqT1uM9p.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-rt5x_wUE.css">
+  <script type="module" crossorigin src="./assets/index-DvZ4ZJTO.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-Em7tlPV3.css">
 </head>
 <body class="dark-theme">
   <!-- Top Global Navigation Bar -->
@@ -168,154 +168,42 @@
 
         <pre id="persona-card-yaml" class="yaml-viewer hidden"></pre>
 
-        <!-- Voice Selection Category Tabs -->
-        <div class="voice-picker-container">
-          <div class="voice-tabs-nav">
-            <button class="voice-tab active" data-vtab="my-voice">
-              👤 My Writing Voice (Extract & Save)
-            </button>
-            <button class="voice-tab" data-vtab="classic-masters">
-              📜 Classic Pre-AI Masters (Public Domain)
-            </button>
-            <button class="voice-tab" data-vtab="modern-archetypes">
-              🛠️ Modern Field Archetypes
-            </button>
-          </div>
+        <!-- Unified Voices Directory: All Available Voices directly displayed as Tiles -->
+        <div class="voices-directory-section">
+          <!-- Toolbar with filter pills and backup / restore / establish actions -->
+          <div class="voices-toolbar">
+            <div class="voices-filter-group" id="voices-filter-group">
+              <button type="button" class="voice-filter-pill active" data-vfilter="all">
+                🌐 All Voices (<span id="count-filter-all">14</span>)
+              </button>
+              <button type="button" class="voice-filter-pill" data-vfilter="masters">
+                📜 Pre-AI Masters (7)
+              </button>
+              <button type="button" class="voice-filter-pill" data-vfilter="archetypes">
+                🛠️ Modern Field Archetypes (7)
+              </button>
+              <button type="button" class="voice-filter-pill" data-vfilter="personal">
+                👤 My Profiles (<span id="count-filter-personal">0</span>)
+              </button>
+            </div>
 
-          <!-- Tab 1: My Writing Voice (Custom Calibration & Persistence) -->
-          <div class="voice-tab-pane active" id="vpane-my-voice">
-            <div class="custom-voice-setup-grid">
-              <div class="setup-guide-col">
-                <div class="guide-feature-box">
-                  <h4>💡 Why calibrate your voice?</h4>
-                  <p>
-                    Paste 1–2 paragraphs of something you actually wrote (an old blog post, email, research excerpt, or GitHub PR), or drop a file.
-                  </p>
-                  <p>
-                    The engine infers your <strong>Author DNA Card</strong> (epistemic stance, cadence, jargon tolerance) and <strong>saves it in your browser</strong> so every draft you sanitize matches your personal voice until you choose to clear it.
-                  </p>
-                </div>
-              </div>
-
-              <div class="setup-input-col">
-                <!-- Drop Zone for Voice Sample -->
-                <div class="file-dropzone" id="voice-dropzone">
-                  <input type="file" id="voice-file-input" class="hidden-file-input" accept=".txt,.md,.text,.markdown,.docx,.pdf" />
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                  <span>Drop writing sample (.txt, .md, Word .docx, PDF .pdf) here, or browse</span>
-                </div>
-
-                <div class="form-group" style="margin-top:12px;">
-                  <label for="sample-author-text">Or paste your genuine writing sample:</label>
-                  <textarea id="sample-author-text" class="prose-textarea sample-input" placeholder="Paste 1–2 paragraphs of something you wrote before ChatGPT existed, or a genuine personal note/article..."></textarea>
-                </div>
-
-                <div class="voice-actions-row">
-                  <button type="button" id="extract-save-voice-btn" class="btn btn-primary" title="Analyze sentence cadence, lexical richness, and syntactic traits">
-                    📊 Forensic Stylometric Extraction
-                  </button>
-                  <button type="button" id="extract-ai-voice-btn" class="btn btn-secondary" title="Use active AI backend for deep cognitive persona synthesis">
-                    🧠 Deep AI Voice Profile
-                  </button>
-                  <span id="custom-voice-status-msg" class="status-msg"></span>
-                </div>
-
-                <!-- Forensic Stylometric Fingerprint Audit Card -->
-                <div class="stylometrics-audit-card hidden" id="voice-stylometrics-card">
-                  <div class="audit-card-header">
-                    <div class="audit-header-title">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                      <strong>Forensic Stylometric Fingerprint</strong>
-                    </div>
-                    <span class="audit-stats-badge" id="audit-stats-badge">0 words analyzed</span>
-                  </div>
-
-                  <div class="audit-metrics-grid">
-                    <div class="audit-metric-box">
-                      <span class="audit-metric-label">Sentence Cadence</span>
-                      <strong class="audit-metric-val" id="audit-cadence-val">--</strong>
-                      <span class="audit-metric-sub" id="audit-cadence-sub">Burstiness: --</span>
-                    </div>
-
-                    <div class="audit-metric-box">
-                      <span class="audit-metric-label">Lexical Variety</span>
-                      <strong class="audit-metric-val" id="audit-ttr-val">--</strong>
-                      <span class="audit-metric-sub" id="audit-ttr-sub">Hapax Ratio: --</span>
-                    </div>
-
-                    <div class="audit-metric-box">
-                      <span class="audit-metric-label">Pronoun Stance</span>
-                      <strong class="audit-metric-val" id="audit-stance-val">--</strong>
-                      <span class="audit-metric-sub" id="audit-stance-sub">Perspective: --</span>
-                    </div>
-
-                    <div class="audit-metric-box">
-                      <span class="audit-metric-label">Epistemic Modality</span>
-                      <strong class="audit-metric-val" id="audit-epistemic-val">--</strong>
-                      <span class="audit-metric-sub" id="audit-epistemic-sub">Tone: --</span>
-                    </div>
-                  </div>
-
-                  <!-- Cadence distribution bar -->
-                  <div class="audit-bar-section">
-                    <div class="audit-bar-labels">
-                      <span>Sentence Cadence Distribution:</span>
-                      <span id="audit-dist-label">Short (&lt;12w) • Medium (12-25w) • Complex (&gt;25w)</span>
-                    </div>
-                    <div class="audit-dist-bar">
-                      <div class="dist-seg seg-short" id="bar-seg-short" style="width: 33%;" title="Short sentences (&lt;12w)"></div>
-                      <div class="dist-seg seg-med" id="bar-seg-med" style="width: 34%;" title="Medium sentences (12-25w)"></div>
-                      <div class="dist-seg seg-long" id="bar-seg-long" style="width: 33%;" title="Complex sentences (&gt;25w)"></div>
-                    </div>
-                  </div>
-
-                  <!-- Distinctive Vocabulary Markers -->
-                  <div class="audit-chips-section">
-                    <span class="audit-chips-title">Distinctive Content Keywords:</span>
-                    <div class="audit-chips-container" id="audit-keywords-container">
-                      <span style="color:var(--text-muted);font-size:0.72rem;">No text analyzed yet</span>
-                    </div>
-                  </div>
-
-                  <!-- Punctuation profile -->
-                  <div class="audit-punctuation-row" id="audit-punctuation-container">
-                    <!-- Punctuation traits added dynamically -->
-                  </div>
-                </div>
-
-                <!-- Saved Personal Profiles List -->
-                <div class="saved-profiles-panel hidden" id="saved-profiles-container" style="margin-top:16px;">
-                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-                    <h4 style="font-size:0.86rem;font-weight:700;color:var(--text-primary);margin:0;">
-                      📁 Saved Personal Profile Voices (<span id="saved-profiles-count">0</span>)
-                    </h4>
-                  </div>
-                  <div class="saved-profiles-list" id="saved-profiles-list" style="display:flex;flex-direction:column;gap:8px;">
-                    <!-- Dynamically populated via JS -->
-                  </div>
-                </div>
-              </div>
+            <div class="voices-actions-group">
+              <button type="button" id="backup-voices-btn" class="btn btn-secondary btn-sm" title="Download a JSON backup of all your custom voices">
+                📥 Backup Voices (.json)
+              </button>
+              <button type="button" id="restore-voices-btn" class="btn btn-secondary btn-sm" title="Restore custom voices from a JSON backup file">
+                📤 Restore Voices (.json)
+              </button>
+              <input type="file" id="restore-voices-input" class="hidden-file-input" accept=".json,application/json" style="display:none;" />
+              <button type="button" id="open-establish-voice-btn" class="btn btn-primary btn-sm" title="Establish a new custom author voice profile">
+                ➕ Establish Custom Voice
+              </button>
             </div>
           </div>
 
-          <!-- Tab 2: Classic Pre-AI Masters -->
-          <div class="voice-tab-pane hidden" id="vpane-classic-masters">
-            <p class="tab-explainer">
-              These historical personas use <strong>authentic writing from before generative AI existed</strong> (1912–1986). They provide proven, authentic human cadences across philosophy, clear exposition, physics pedagogy, systems engineering, and cultural inquiry.
-            </p>
-            <div class="persona-cards-grid" id="classic-masters-grid">
-              <!-- Populated via JS -->
-            </div>
-          </div>
-
-          <!-- Tab 3: Modern Field Archetypes -->
-          <div class="voice-tab-pane hidden" id="vpane-modern-archetypes">
-            <p class="tab-explainer">
-              Pre-calibrated operational stances for engineering memos, academic publications, executive strategy, and technical mentoring.
-            </p>
-            <div class="persona-cards-grid" id="modern-archetypes-grid">
-              <!-- Populated via JS -->
-            </div>
+          <!-- All Available Voices Tiles Grid -->
+          <div class="persona-cards-grid" id="all-voices-grid">
+            <!-- Populated dynamically via JS: all voices tiles + trailing '+ Establish Custom Voice' tile -->
           </div>
         </div>
 
@@ -654,6 +542,138 @@
     </section>
 
   </main>
+
+  <!-- =========================================================================
+       CUSTOM VOICE STUDIO MODAL: ESTABLISH, CALIBRATE & SAVE MULTIPLE VOICES
+       ========================================================================= -->
+  <div class="modal-overlay hidden" id="custom-voice-modal">
+    <div class="modal-card modal-card-wide">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <h3 class="modal-title">✨ Establish Custom Author Voice Profile</h3>
+          <p class="modal-subtitle">
+            Extract your genuine pre-AI author DNA or calibrate a new writing persona from text or files. Profiles are saved locally and can be backed up as JSON.
+          </p>
+        </div>
+        <button id="close-custom-voice-modal-btn" class="icon-btn" title="Close">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="custom-voice-setup-grid">
+          <div class="setup-guide-col">
+            <div class="guide-feature-box">
+              <h4>💡 How Custom Calibration Works</h4>
+              <p>
+                Provide 1–2 paragraphs of something you actually wrote (an old blog post, email, research excerpt, or publication), or drop a document.
+              </p>
+              <p>
+                The engine computes your <strong>Author DNA Card</strong> (cadence burstiness, epistemic stance, lexical variety, pronoun habits) and stores it in your library so you can reuse or back it up anytime.
+              </p>
+            </div>
+
+            <div class="form-group" style="margin-top:16px;">
+              <label for="custom-voice-name-input"><strong>Voice Profile Label:</strong></label>
+              <input type="text" id="custom-voice-name-input" class="form-input" placeholder="e.g. My Academic Journal Voice, Substack Style..." value="" />
+              <span style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;display:block;">
+                Give this voice a recognizable name to easily distinguish between your different writing modes.
+              </span>
+            </div>
+          </div>
+
+          <div class="setup-input-col">
+            <!-- Drop Zone for Voice Sample -->
+            <div class="file-dropzone" id="voice-dropzone">
+              <input type="file" id="voice-file-input" class="hidden-file-input" accept=".txt,.md,.text,.markdown,.docx,.pdf" />
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>Drop writing sample (.txt, .md, Word .docx, PDF .pdf) here, or browse</span>
+            </div>
+
+            <div class="form-group" style="margin-top:12px;">
+              <label for="sample-author-text">Or paste your genuine writing sample:</label>
+              <textarea id="sample-author-text" class="prose-textarea sample-input" placeholder="Paste 1–2 paragraphs of text you wrote (60+ characters)..."></textarea>
+            </div>
+
+            <div class="voice-actions-row">
+              <button type="button" id="extract-save-voice-btn" class="btn btn-primary" title="Instant mathematical extraction of cadence and lexical metrics">
+                📊 Forensic Stylometric Extraction
+              </button>
+              <button type="button" id="extract-ai-voice-btn" class="btn btn-secondary" title="Use active AI backend for deep cognitive persona synthesis">
+                🧠 Deep AI Voice Profile
+              </button>
+              <span id="custom-voice-status-msg" class="status-msg"></span>
+            </div>
+
+            <!-- Forensic Stylometric Fingerprint Audit Card -->
+            <div class="stylometrics-audit-card hidden" id="voice-stylometrics-card">
+              <div class="audit-card-header">
+                <div class="audit-header-title">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                  <strong>Forensic Stylometric Fingerprint</strong>
+                </div>
+                <span class="audit-stats-badge" id="audit-stats-badge">0 words analyzed</span>
+              </div>
+
+              <div class="audit-metrics-grid">
+                <div class="audit-metric-box">
+                  <span class="audit-metric-label">Sentence Cadence</span>
+                  <strong class="audit-metric-val" id="audit-cadence-val">--</strong>
+                  <span class="audit-metric-sub" id="audit-cadence-sub">Burstiness: --</span>
+                </div>
+
+                <div class="audit-metric-box">
+                  <span class="audit-metric-label">Lexical Variety</span>
+                  <strong class="audit-metric-val" id="audit-ttr-val">--</strong>
+                  <span class="audit-metric-sub" id="audit-ttr-sub">Hapax Ratio: --</span>
+                </div>
+
+                <div class="audit-metric-box">
+                  <span class="audit-metric-label">Pronoun Stance</span>
+                  <strong class="audit-metric-val" id="audit-stance-val">--</strong>
+                  <span class="audit-metric-sub" id="audit-stance-sub">Perspective: --</span>
+                </div>
+
+                <div class="audit-metric-box">
+                  <span class="audit-metric-label">Epistemic Modality</span>
+                  <strong class="audit-metric-val" id="audit-epistemic-val">--</strong>
+                  <span class="audit-metric-sub" id="audit-epistemic-sub">Tone: --</span>
+                </div>
+              </div>
+
+              <!-- Cadence distribution bar -->
+              <div class="audit-bar-section">
+                <div class="audit-bar-labels">
+                  <span>Sentence Cadence Distribution:</span>
+                  <span id="audit-dist-label">Short (&lt;12w) • Medium (12-25w) • Complex (&gt;25w)</span>
+                </div>
+                <div class="audit-dist-bar">
+                  <div class="dist-seg seg-short" id="bar-seg-short" style="width: 33%;" title="Short sentences (&lt;12w)"></div>
+                  <div class="dist-seg seg-med" id="bar-seg-med" style="width: 34%;" title="Medium sentences (12-25w)"></div>
+                  <div class="dist-seg seg-long" id="bar-seg-long" style="width: 33%;" title="Complex sentences (&gt;25w)"></div>
+                </div>
+              </div>
+
+              <!-- Distinctive Vocabulary Markers -->
+              <div class="audit-chips-section">
+                <span class="audit-chips-title">Distinctive Content Keywords:</span>
+                <div class="audit-chips-container" id="audit-keywords-container">
+                  <span style="color:var(--text-muted);font-size:0.72rem;">No text analyzed yet</span>
+                </div>
+              </div>
+
+              <!-- Punctuation profile -->
+              <div class="audit-punctuation-row" id="audit-punctuation-container">
+                <!-- Punctuation traits added dynamically -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" id="close-custom-voice-modal-done-btn" class="btn btn-secondary">Done</button>
+      </div>
+    </div>
+  </div>
 
   <!-- =========================================================================
        ACTIVE VOICE CHOOSER MODAL (Personal Profiles, Pre-AI Masters, Archetypes)

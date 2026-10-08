@@ -203,13 +203,21 @@ const savedProfilesList = document.getElementById('saved-profiles-list');
 const stageFooterVoiceLabel = document.getElementById('stage-footer-voice-label');
 const gotoStage2Btn = document.getElementById('goto-stage-2-btn');
 
-// Voice Tabs
-const voiceTabs = document.querySelectorAll('.voice-tab');
-const voicePanes = {
-  'my-voice': document.getElementById('vpane-my-voice'),
-  'classic-masters': document.getElementById('vpane-classic-masters'),
-  'modern-archetypes': document.getElementById('vpane-modern-archetypes')
-};
+// Stage 1: Voices Directory & Toolbar
+const allVoicesGrid = document.getElementById('all-voices-grid');
+const voiceFilterPills = document.querySelectorAll('.voices-toolbar .voice-filter-pill');
+const countFilterAll = document.getElementById('count-filter-all');
+const countFilterPersonal = document.getElementById('count-filter-personal');
+const backupVoicesBtn = document.getElementById('backup-voices-btn');
+const restoreVoicesBtn = document.getElementById('restore-voices-btn');
+const restoreVoicesInput = document.getElementById('restore-voices-input');
+const openEstablishVoiceBtn = document.getElementById('open-establish-voice-btn');
+
+// Custom Voice Studio Modal
+const customVoiceModal = document.getElementById('custom-voice-modal');
+const closeCustomVoiceModalBtn = document.getElementById('close-custom-voice-modal-btn');
+const closeCustomVoiceModalDoneBtn = document.getElementById('close-custom-voice-modal-done-btn');
+const customVoiceNameInput = document.getElementById('custom-voice-name-input');
 const voiceDropzone = document.getElementById('voice-dropzone');
 const voiceFileInput = document.getElementById('voice-file-input');
 const sampleAuthorText = document.getElementById('sample-author-text');
@@ -232,8 +240,6 @@ const barSegMed = document.getElementById('bar-seg-med');
 const barSegLong = document.getElementById('bar-seg-long');
 const auditKeywordsContainer = document.getElementById('audit-keywords-container');
 const auditPunctuationContainer = document.getElementById('audit-punctuation-container');
-const classicMastersGrid = document.getElementById('classic-masters-grid');
-const modernArchetypesGrid = document.getElementById('modern-archetypes-grid');
 
 // Stage 2: Target Draft
 const sourceTextEl = document.getElementById('source-text');
@@ -447,9 +453,7 @@ function init() {
   updateEditorialTreatmentUI();
   updateExecutionStrategyUI();
   renderPresetSelector();
-  renderClassicMasters();
-  renderModernArchetypes();
-  renderSavedProfilesList();
+  renderAllVoiceTiles(state.activeVoiceFilter || 'all');
   updateActiveHeroVoiceDisplay();
   updateEngineUI();
   setupEventListeners();
@@ -485,10 +489,21 @@ function switchStage(stageNum) {
 function goHome() {
   switchStage(1);
   closeVoiceModal();
+  closeCustomVoiceModal();
   if (excerptModal) excerptModal.classList.add('hidden');
   if (engineModal) engineModal.classList.add('hidden');
   if (stepDetailsDrawer) stepDetailsDrawer.classList.add('hidden');
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function scrollToVoicesDirectory() {
+  switchStage(1);
+  closeVoiceModal();
+  closeCustomVoiceModal();
+  const dir = document.querySelector('.voices-directory-section');
+  if (dir) {
+    dir.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 }
 
 // --- Persona Management & Rendering ---
@@ -558,88 +573,230 @@ function selectPersona(persona) {
   state.activePersona = persona;
   localStorage.setItem(STORAGE_KEYS.activePersonaId, persona.id);
   updateActiveHeroVoiceDisplay();
-  renderSavedProfilesList();
+  renderAllVoiceTiles(state.activeVoiceFilter || 'all');
 }
 
-function renderClassicMasters() {
-  classicMastersGrid.innerHTML = '';
-  CLASSIC_PERSONAS.forEach(p => {
-    const card = document.createElement('div');
-    card.className = `master-card ${p.id === state.activePersona.id ? 'active' : ''}`;
-    card.dataset.personaId = p.id;
+function renderAllVoiceTiles(filter = 'all') {
+  state.activeVoiceFilter = filter;
+  if (!allVoicesGrid) return;
 
-    card.innerHTML = `
-      <div class="master-card-header">
-        <div class="master-meta-row">
-          <span class="hero-voice-badge">${p.badge}</span>
-          <span class="hero-era-badge">${p.era}</span>
-        </div>
-        <span class="master-domain-badge">${p.domain}</span>
-        <h4 class="master-card-title">${p.name}</h4>
-        <p class="master-card-desc">${p.description}</p>
-      </div>
-      <div class="master-card-actions">
-        <button type="button" class="preview-excerpt-btn" title="Read original pre-AI passage">
-          👁️ Read Pre-AI Sample
-        </button>
-        <button type="button" class="btn btn-sm select-voice-btn ${p.id === state.activePersona.id ? 'btn-primary' : 'btn-secondary'}">
-          ${p.id === state.activePersona.id ? '✓ Active Voice' : 'Select This Voice'}
-        </button>
-      </div>
-    `;
-
-    // Click on excerpt button opens modal
-    card.querySelector('.preview-excerpt-btn').addEventListener('click', (e) => {
-      e.stopPropagation();
-      openExcerptModal(p);
-    });
-
-    // Select button
-    card.querySelector('.select-voice-btn').addEventListener('click', (e) => {
-      e.stopPropagation();
-      selectPersona(p);
-    });
-
-    // Clicking card selects it
-    card.addEventListener('click', () => selectPersona(p));
-
-    classicMastersGrid.appendChild(card);
+  // Update filter pill UI states
+  voiceFilterPills.forEach(pill => {
+    pill.classList.toggle('active', pill.dataset.vfilter === filter);
   });
+
+  // Update dynamic count indicators
+  const totalCount = state.customPersonas.length + CLASSIC_PERSONAS.length + ARCHETYPES.length;
+  if (countFilterAll) countFilterAll.textContent = totalCount;
+  if (countFilterPersonal) countFilterPersonal.textContent = state.customPersonas.length;
+  if (modalPersonalCount) modalPersonalCount.textContent = state.customPersonas.length;
+
+  allVoicesGrid.innerHTML = '';
+
+  let list = [];
+  if (filter === 'all') {
+    list = [...state.customPersonas, ...CLASSIC_PERSONAS, ...ARCHETYPES];
+  } else if (filter === 'masters') {
+    list = CLASSIC_PERSONAS;
+  } else if (filter === 'archetypes') {
+    list = ARCHETYPES;
+  } else if (filter === 'personal') {
+    list = state.customPersonas;
+  }
+
+  // If filtered for personal and none exists, render a helpful empty state
+  if (filter === 'personal' && list.length === 0) {
+    const emptyBox = document.createElement('div');
+    emptyBox.className = 'master-card';
+    emptyBox.style.cssText = 'grid-column: 1 / -1; padding: 36px 20px; text-align: center; border: 1px dashed var(--border-subtle); background: var(--bg-surface); border-radius: var(--radius-lg);';
+    emptyBox.innerHTML = `
+      <div style="font-size: 2.2rem; margin-bottom: 8px;">👤</div>
+      <h4 style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">No Personal Profiles Calibrated Yet</h4>
+      <p style="font-size: 0.84rem; color: var(--text-secondary); max-width: 480px; margin: 0 auto 16px; line-height: 1.5;">
+        Extract your unique author DNA from a genuine sample you wrote. You can establish multiple distinct custom voices and back them up anytime.
+      </p>
+      <button type="button" class="btn btn-primary btn-sm" id="empty-grid-create-btn">➕ Establish Custom Voice</button>
+    `;
+    emptyBox.querySelector('#empty-grid-create-btn').addEventListener('click', () => openCustomVoiceModal());
+    allVoicesGrid.appendChild(emptyBox);
+  } else {
+    // Render voice cards
+    list.forEach(p => {
+      const isActive = p.id === state.activePersona.id;
+      const isCustom = Boolean(p.isCustom || p.id.startsWith('custom-user-voice'));
+
+      const card = document.createElement('div');
+      card.className = `master-card ${isActive ? 'active' : ''} ${isCustom ? 'personal-card' : ''}`;
+      card.dataset.personaId = p.id;
+
+      let traits = [];
+      if (isCustom && p.metrics) {
+        traits = [
+          `~${p.metrics.meanSentenceLength}w/sent`,
+          `Burstiness: ${p.metrics.stdDevSentenceLength}`,
+          `TTR: ${p.metrics.typeTokenRatio}`
+        ];
+      } else if (p.card) {
+        traits = [
+          p.domain || 'Field Persona',
+          p.card.epistemic_stance?.replace(/_/g, ' ') || 'empirical',
+          p.card.lexical_habits?.formality_level?.replace(/_/g, ' ') || 'plain'
+        ];
+      }
+
+      card.innerHTML = `
+        <div class="master-card-header">
+          <div class="master-meta-row">
+            <span class="hero-voice-badge">${escapeHtml(p.badge || p.name)}</span>
+            ${p.era ? `<span class="hero-era-badge">${escapeHtml(p.era)}</span>` : ''}
+            ${isCustom ? `<button type="button" class="delete-persona-btn" title="Delete this saved voice profile" data-del-id="${p.id}" style="margin-left:auto;">🗑️</button>` : ''}
+          </div>
+          ${p.domain ? `<span class="master-domain-badge">${escapeHtml(p.domain)}</span>` : ''}
+          <h4 class="master-card-title">${escapeHtml(p.name)}</h4>
+          <p class="master-card-desc">${escapeHtml(p.description)}</p>
+          <div class="hero-traits-row" style="margin-top:10px;">
+            ${traits.map(t => `<span class="trait-pill">${escapeHtml(t)}</span>`).join('')}
+          </div>
+        </div>
+        <div class="master-card-actions">
+          ${p.sampleExcerpt ? `<button type="button" class="preview-excerpt-btn" title="Read authentic pre-AI passage">👁️ Sample</button>` : '<span></span>'}
+          <button type="button" class="btn btn-sm select-voice-btn ${isActive ? 'btn-primary' : 'btn-secondary'}">
+            ${isActive ? '✓ Active Voice' : 'Select This Voice'}
+          </button>
+        </div>
+      `;
+
+      if (p.sampleExcerpt) {
+        card.querySelector('.preview-excerpt-btn').addEventListener('click', (e) => {
+          e.stopPropagation();
+          openExcerptModal(p);
+        });
+      }
+
+      if (isCustom) {
+        const delBtn = card.querySelector('.delete-persona-btn');
+        if (delBtn) {
+          delBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            deletePersonalVoice(p.id);
+          });
+        }
+      }
+
+      card.querySelector('.select-voice-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectPersona(p);
+      });
+
+      card.addEventListener('click', () => selectPersona(p));
+
+      allVoicesGrid.appendChild(card);
+    });
+  }
+
+  // THE LAST TILE IN THE GRID: Prominent Dedicated "+ Establish Custom Voice" Tile
+  const createTile = document.createElement('div');
+  createTile.className = 'master-card create-custom-voice-tile';
+  createTile.id = 'create-voice-tile-btn';
+  createTile.title = 'Click to establish a new custom author voice profile';
+  createTile.innerHTML = `
+    <div class="create-tile-inner">
+      <div class="create-tile-icon">➕</div>
+      <h4 class="create-tile-title">Establish Custom Voice</h4>
+      <p class="create-tile-desc">
+        Extract your genuine pre-AI author DNA or calibrate a new writing persona from text or file.
+      </p>
+      <button type="button" class="btn btn-primary btn-sm" style="pointer-events:none;margin-top:6px;">
+        + Create Voice Profile
+      </button>
+    </div>
+  `;
+  createTile.addEventListener('click', () => openCustomVoiceModal());
+  allVoicesGrid.appendChild(createTile);
 }
 
-function renderModernArchetypes() {
-  modernArchetypesGrid.innerHTML = '';
-  ARCHETYPES.forEach(p => {
-    const card = document.createElement('div');
-    card.className = `master-card ${p.id === state.activePersona.id ? 'active' : ''}`;
-    card.dataset.personaId = p.id;
+function openCustomVoiceModal() {
+  if (!customVoiceModal) return;
+  if (customVoiceNameInput) {
+    const nextNum = state.customPersonas.length + 1;
+    customVoiceNameInput.value = `My Voice Profile (${nextNum})`;
+  }
+  if (customVoiceStatusMsg) customVoiceStatusMsg.textContent = '';
+  customVoiceModal.classList.remove('hidden');
+}
 
-    card.innerHTML = `
-      <div class="master-card-header">
-        <div class="master-meta-row">
-          <span class="hero-voice-badge">${p.badge}</span>
-          <span class="master-domain-badge">${p.domain}</span>
-        </div>
-        <h4 class="master-card-title">${p.name}</h4>
-        <p class="master-card-desc">${p.description}</p>
-      </div>
-      <div class="master-card-actions">
-        <span></span>
-        <button type="button" class="btn btn-sm select-voice-btn ${p.id === state.activePersona.id ? 'btn-primary' : 'btn-secondary'}">
-          ${p.id === state.activePersona.id ? '✓ Active Voice' : 'Select This Voice'}
-        </button>
-      </div>
-    `;
+function closeCustomVoiceModal() {
+  if (customVoiceModal) customVoiceModal.classList.add('hidden');
+}
 
-    card.querySelector('.select-voice-btn').addEventListener('click', (e) => {
-      e.stopPropagation();
-      selectPersona(p);
+function backupVoices() {
+  if (!state.customPersonas || state.customPersonas.length === 0) {
+    alert('You have no saved custom voice profiles yet.\n\nClick "+ Establish Custom Voice" to create your first personal profile before backing up.');
+    return;
+  }
+  const payload = {
+    app: 'stop-slop',
+    version: '1.0',
+    exportedAt: new Date().toISOString(),
+    profilesCount: state.customPersonas.length,
+    customPersonas: state.customPersonas
+  };
+  const jsonStr = JSON.stringify(payload, null, 2);
+  const blob = new Blob([jsonStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const dateStamp = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `stop-slop-custom-voices-${dateStamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+async function restoreVoicesFromFile(file) {
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const parsed = JSON.parse(text);
+    let incoming = [];
+    if (Array.isArray(parsed)) {
+      incoming = parsed;
+    } else if (parsed && Array.isArray(parsed.customPersonas)) {
+      incoming = parsed.customPersonas;
+    } else if (parsed && parsed.name) {
+      incoming = [parsed];
+    }
+
+    if (!incoming || incoming.length === 0) {
+      alert('No valid custom voice profiles found in this JSON backup file.');
+      return;
+    }
+
+    let addedCount = 0;
+    incoming.forEach(p => {
+      if (!p.id) p.id = `custom-user-voice-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      p.isCustom = true;
+      const existsIndex = state.customPersonas.findIndex(e => e.id === p.id);
+      if (existsIndex >= 0) {
+        state.customPersonas[existsIndex] = p;
+      } else {
+        state.customPersonas.unshift(p);
+        addedCount++;
+      }
     });
 
-    card.addEventListener('click', () => selectPersona(p));
-
-    modernArchetypesGrid.appendChild(card);
-  });
+    localStorage.setItem(STORAGE_KEYS.customPersonas, JSON.stringify(state.customPersonas));
+    if (incoming.length > 0) {
+      selectPersona(incoming[0]);
+    } else {
+      renderAllVoiceTiles(state.activeVoiceFilter || 'all');
+    }
+    alert(`✓ Successfully restored ${incoming.length} custom voice profile(s)! (${addedCount} new added)`);
+  } catch (err) {
+    console.error('Failed to parse voice backup:', err);
+    alert(`Could not restore voices from file: ${err.message}. Please verify the file is a valid JSON backup.`);
+  }
 }
 
 function openExcerptModal(persona) {
@@ -820,16 +977,8 @@ function deletePersonalVoice(id) {
   }
 
   renderVoiceModalGrid(state.activeVoiceFilter);
+  renderAllVoiceTiles(state.activeVoiceFilter || 'all');
   renderSavedProfilesList();
-}
-
-function switchVoiceTab(tabId) {
-  voiceTabs.forEach(t => t.classList.toggle('active', t.dataset.vtab === tabId));
-  Object.keys(voicePanes).forEach(k => {
-    if (voicePanes[k]) {
-      voicePanes[k].classList.toggle('hidden', k !== tabId);
-    }
-  });
 }
 
 function renderSavedProfilesList() {
@@ -971,8 +1120,9 @@ async function extractAndSaveUserVoice(sampleText, useAI = false) {
   try {
     let customPersona = null;
     const profileId = `custom-user-voice-${Date.now()}`;
+    const modalInputName = customVoiceNameInput ? customVoiceNameInput.value.trim() : '';
     const defaultProfileName = `My Voice DNA (${state.customPersonas.length + 1})`;
-    const customName = prompt('Enter a label for this personal author voice profile:', defaultProfileName)?.trim() || defaultProfileName;
+    const customName = modalInputName || prompt('Enter a label for this personal author voice profile:', defaultProfileName)?.trim() || defaultProfileName;
 
     if (useAI && state.activeProvider !== 'demo') {
       const engineCfg = getActiveEngineConfig();
@@ -1529,26 +1679,26 @@ function setupEventListeners() {
   // Stepper Bar Stage Selection
   stageNavItems.forEach((btn, idx) => {
     btn.addEventListener('click', () => {
-      // If clicking Stage 1 while already on Stage 1, open Voice Chooser modal directly!
+      // If clicking Stage 1 while already on Stage 1, scroll to voices directory
       if (idx === 0 && state.currentStage === 1) {
-        openVoiceModal('all');
+        scrollToVoicesDirectory();
         return;
       }
       switchStage(idx + 1);
     });
   });
 
-  // Clicking active voice pill in stepper bar directly opens Voice Chooser modal from any stage
+  // Clicking active voice pill in stepper bar directly navigates to voices directory
   if (activeVoicePill) {
     activeVoicePill.addEventListener('click', (e) => {
       e.stopPropagation();
-      openVoiceModal('all');
+      scrollToVoicesDirectory();
     });
   }
 
   // Global Header Voice Button
   if (voiceSelectorBtn) {
-    voiceSelectorBtn.addEventListener('click', () => openVoiceModal('all'));
+    voiceSelectorBtn.addEventListener('click', scrollToVoicesDirectory);
   }
 
   // Stage 1 controls
@@ -1561,17 +1711,55 @@ function setupEventListeners() {
 
   // Hero card Change Voice button & badge click
   if (browseAllVoicesBtn) {
-    browseAllVoicesBtn.addEventListener('click', () => openVoiceModal('all'));
+    browseAllVoicesBtn.addEventListener('click', scrollToVoicesDirectory);
   }
   if (heroVoiceBadge) {
     heroVoiceBadge.style.cursor = 'pointer';
-    heroVoiceBadge.title = 'Click to choose active author voice';
-    heroVoiceBadge.addEventListener('click', () => openVoiceModal('all'));
+    heroVoiceBadge.title = 'Click to browse all available voices';
+    heroVoiceBadge.addEventListener('click', scrollToVoicesDirectory);
   }
 
   // Stage 2 Draft voice switch button
   if (stage2VoiceBtn) {
-    stage2VoiceBtn.addEventListener('click', () => openVoiceModal('all'));
+    stage2VoiceBtn.addEventListener('click', scrollToVoicesDirectory);
+  }
+
+  // Voices Toolbar Filter Pills
+  voiceFilterPills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      renderAllVoiceTiles(pill.dataset.vfilter);
+    });
+  });
+
+  // Backup & Restore Voices
+  if (backupVoicesBtn) {
+    backupVoicesBtn.addEventListener('click', backupVoices);
+  }
+  if (restoreVoicesBtn && restoreVoicesInput) {
+    restoreVoicesBtn.addEventListener('click', () => restoreVoicesInput.click());
+    restoreVoicesInput.addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        restoreVoicesFromFile(file);
+        e.target.value = '';
+      }
+    });
+  }
+  if (openEstablishVoiceBtn) {
+    openEstablishVoiceBtn.addEventListener('click', openCustomVoiceModal);
+  }
+
+  // Custom Voice Studio Modal Controls
+  if (closeCustomVoiceModalBtn) {
+    closeCustomVoiceModalBtn.addEventListener('click', closeCustomVoiceModal);
+  }
+  if (closeCustomVoiceModalDoneBtn) {
+    closeCustomVoiceModalDoneBtn.addEventListener('click', closeCustomVoiceModal);
+  }
+  if (customVoiceModal) {
+    customVoiceModal.addEventListener('click', (e) => {
+      if (e.target === customVoiceModal) closeCustomVoiceModal();
+    });
   }
 
   // Voice Chooser Modal controls
@@ -1589,9 +1777,7 @@ function setupEventListeners() {
   if (modalCalibrateNewBtn) {
     modalCalibrateNewBtn.addEventListener('click', () => {
       closeVoiceModal();
-      switchStage(1);
-      switchVoiceTab('my-voice');
-      if (sampleAuthorText) sampleAuthorText.focus();
+      openCustomVoiceModal();
     });
   }
   voiceModalTabs.forEach(tab => {
@@ -1602,20 +1788,11 @@ function setupEventListeners() {
 
   window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
+      closeCustomVoiceModal();
       closeVoiceModal();
       if (excerptModal) excerptModal.classList.add('hidden');
       if (engineModal) engineModal.classList.add('hidden');
     }
-  });
-
-  // Voice Tabs (Stage 1)
-  voiceTabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      voiceTabs.forEach(t => t.classList.toggle('active', t === tab));
-      Object.keys(voicePanes).forEach(k => {
-        voicePanes[k].classList.toggle('hidden', k !== tab.dataset.vtab);
-      });
-    });
   });
 
   // Custom Voice Extraction Buttons
