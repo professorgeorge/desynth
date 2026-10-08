@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@mlc-ai/web-llm": "^0.2.85",
+    "docx": "^9.9.0",
     "mammoth": "^1.13.0",
     "pdfjs-dist": "^6.4.299"
   }

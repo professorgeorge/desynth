@@ -22,6 +22,7 @@ import {
   testProviderConnection,
   initWebLLM
 } from './engine/llm-connector.js';
+import { downloadProseAsDocx } from './engine/docx-export.js';
 
 // --- Multi-Provider Settings Storage Keys ---
 const STORAGE_KEYS = {
@@ -290,6 +291,7 @@ const claimsContentBox = document.getElementById('claims-content-box');
 const syntaxFramesBox = document.getElementById('syntax-frames-box');
 const compressionBadge = document.getElementById('compression-badge');
 const copyOutputBtn = document.getElementById('copy-output-btn');
+const downloadDocxBtn = document.getElementById('download-docx-btn');
 const downloadOutputBtn = document.getElementById('download-output-btn');
 
 // Stylometrics Metrics
@@ -1876,6 +1878,48 @@ function setupEventListeners() {
       alert('Copied rewritten prose to clipboard!');
     }
   });
+
+  if (downloadDocxBtn) {
+    downloadDocxBtn.addEventListener('click', async () => {
+      const textToExport = state.lastResult?.finalRewrite;
+      if (!textToExport) {
+        alert('No rewritten prose available to download yet. Run Stage 3 first.');
+        return;
+      }
+
+      downloadDocxBtn.disabled = true;
+      const originalHTML = downloadDocxBtn.innerHTML;
+      downloadDocxBtn.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin-icon"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+        <span>Exporting Word...</span>
+      `;
+
+      try {
+        const voiceName = state.activePersona?.name || 'Humanized';
+        const treatmentLabel = state.editorialTreatment === 'lean-tighten'
+          ? 'Lean Editorial Polish'
+          : state.editorialTreatment === 'condense-brief'
+          ? 'Executive Brief'
+          : 'Full Fidelity Polish';
+
+        const baseVoice = state.activePersona?.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'humanized';
+        const fileName = `${baseVoice}-humanized.docx`;
+
+        await downloadProseAsDocx(textToExport, {
+          title: `Humanized Manuscript (${voiceName})`,
+          author: `${voiceName} • Stop-Slop Humanizer`,
+          fileName: fileName,
+          treatment: treatmentLabel
+        });
+      } catch (err) {
+        console.error('Word export error:', err);
+        alert(`Failed to export Word document: ${err.message}`);
+      } finally {
+        downloadDocxBtn.disabled = false;
+        downloadDocxBtn.innerHTML = originalHTML;
+      }
+    });
+  }
 
   downloadOutputBtn.addEventListener('click', () => {
     if (state.lastResult?.finalRewrite) {
