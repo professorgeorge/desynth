@@ -35,6 +35,7 @@ const STORAGE_KEYS = {
   openaiKey: 'stop_slop_openai_key',
   openaiModel: 'stop_slop_openai_model',
   customPersona: 'stop_slop_custom_persona',
+  customPersonas: 'stop_slop_custom_personas',
   activePersonaId: 'stop_slop_active_persona_id'
 };
 
@@ -58,39 +59,59 @@ const CLOUD_PRESETS = {
   }
 };
 
-// Retrieve preserved custom persona if exists
-function loadSavedCustomPersona() {
+// Retrieve preserved custom personas list
+function loadSavedCustomPersonas() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEYS.customPersona);
-    if (raw) {
-      return JSON.parse(raw);
+    const rawList = localStorage.getItem(STORAGE_KEYS.customPersonas);
+    if (rawList) {
+      const parsed = JSON.parse(rawList);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+    // Backward compatibility: load legacy single custom persona
+    const rawSingle = localStorage.getItem(STORAGE_KEYS.customPersona);
+    if (rawSingle) {
+      const single = JSON.parse(rawSingle);
+      if (single && single.name) {
+        if (!single.id) single.id = 'custom-user-voice-1';
+        single.isCustom = true;
+        const list = [single];
+        localStorage.setItem(STORAGE_KEYS.customPersonas, JSON.stringify(list));
+        return list;
+      }
     }
   } catch (e) {
-    console.warn('Could not parse stored custom persona:', e);
+    console.warn('Could not parse stored custom personas:', e);
   }
-  return null;
+  return [];
 }
 
 // Initial active persona resolution
-const savedCustomPersona = loadSavedCustomPersona();
+const savedCustomPersonas = loadSavedCustomPersonas();
 const savedPersonaId = localStorage.getItem(STORAGE_KEYS.activePersonaId);
 
-let initialActivePersona = CLASSIC_PERSONAS[0]; // Default to Bertrand Russell
-if (savedCustomPersona && (!savedPersonaId || savedPersonaId === 'custom-user-voice')) {
-  initialActivePersona = savedCustomPersona;
-} else if (savedPersonaId) {
-  if (savedPersonaId === 'custom-user-voice' && savedCustomPersona) {
-    initialActivePersona = savedCustomPersona;
+let initialActivePersona = CLASSIC_PERSONAS[0]; // Default to Bertrand Russell or saved
+if (savedPersonaId) {
+  const customMatch = savedCustomPersonas.find(p => p.id === savedPersonaId);
+  if (customMatch) {
+    initialActivePersona = customMatch;
+  } else if (savedPersonaId === 'custom-user-voice' && savedCustomPersonas.length > 0) {
+    initialActivePersona = savedCustomPersonas[0];
   } else {
     initialActivePersona = findPersonaById(savedPersonaId);
   }
+} else if (savedCustomPersonas.length > 0) {
+  initialActivePersona = savedCustomPersonas[0];
 }
 
 // --- Application State ---
 const state = {
   currentStage: 1,
   activePersona: initialActivePersona,
-  customPersona: savedCustomPersona,
+  customPersonas: savedCustomPersonas,
+  customPersona: savedCustomPersonas[0] || null,
+  activeVoiceFilter: 'all',
   activeResultTab: 'rewrite',
   activeProvider: localStorage.getItem(STORAGE_KEYS.provider) || 'demo',
   providerConfigs: {
@@ -131,11 +152,26 @@ function getActiveEngineConfig() {
 
 // --- DOM References ---
 
-// Top Stepper Bar
+// Top Stepper Bar & Header Voice Controls
 const stageNavItems = [1, 2, 3].map(n => document.getElementById(`nav-stage-${n}`));
 const stagePanels = [1, 2, 3].map(n => document.getElementById(`stage-panel-${n}`));
 const activeVoicePill = document.getElementById('active-voice-pill');
 const draftStatusPill = document.getElementById('draft-status-pill');
+
+// Global Header Voice
+const voiceSelectorBtn = document.getElementById('voice-selector-btn');
+const headerVoiceDot = document.getElementById('header-voice-dot');
+const headerVoiceLabel = document.getElementById('header-voice-label');
+
+// Voice Chooser Modal
+const voiceModal = document.getElementById('voice-modal');
+const closeVoiceModalBtn = document.getElementById('close-voice-modal-btn');
+const closeVoiceModalDoneBtn = document.getElementById('close-voice-modal-done-btn');
+const voiceModalTabs = document.querySelectorAll('.voice-modal-tab');
+const voiceModalGrid = document.getElementById('voice-modal-grid');
+const voiceModalActiveLabel = document.getElementById('voice-modal-active-label');
+const modalPersonalCount = document.getElementById('modal-personal-count');
+const modalCalibrateNewBtn = document.getElementById('modal-calibrate-new-btn');
 
 // Stage 1: Voice Calibration
 const heroVoiceBadge = document.getElementById('hero-voice-badge');
@@ -147,6 +183,10 @@ const heroTraitsContainer = document.getElementById('hero-traits-container');
 const toggleHeroYamlBtn = document.getElementById('toggle-hero-yaml-btn');
 const personaCardYaml = document.getElementById('persona-card-yaml');
 const clearCustomVoiceBtn = document.getElementById('clear-custom-voice-btn');
+const browseAllVoicesBtn = document.getElementById('browse-all-voices-btn');
+const savedProfilesContainer = document.getElementById('saved-profiles-container');
+const savedProfilesCount = document.getElementById('saved-profiles-count');
+const savedProfilesList = document.getElementById('saved-profiles-list');
 const stageFooterVoiceLabel = document.getElementById('stage-footer-voice-label');
 const gotoStage2Btn = document.getElementById('goto-stage-2-btn');
 
@@ -189,6 +229,8 @@ const densitySelectorEl = document.getElementById('density-selector');
 const clearInputBtn = document.getElementById('clear-input-btn');
 const inputStatsBadge = document.getElementById('input-stats-badge');
 const loadedFileName = document.getElementById('loaded-file-name');
+const stage2VoiceBtn = document.getElementById('stage2-voice-btn');
+const stage2VoiceLabel = document.getElementById('stage2-voice-label');
 const draftDropzone = document.getElementById('draft-dropzone');
 const draftFileInput = document.getElementById('draft-file-input');
 const radarTellsBadge = document.getElementById('radar-tells-badge');
@@ -295,17 +337,23 @@ function init() {
   renderPresetSelector();
   renderClassicMasters();
   renderModernArchetypes();
+  renderSavedProfilesList();
   updateActiveHeroVoiceDisplay();
   updateEngineUI();
   setupEventListeners();
   setupDragAndDrop();
   setupPWA();
 
-  // If a saved custom persona is present, pre-fill sample text indicator and render metrics
-  if (state.customPersona) {
+  // If active persona is custom or custom profiles exist, pre-fill sample text indicator and render metrics
+  if (state.activePersona && (state.activePersona.isCustom || state.activePersona.id.startsWith('custom-user-voice'))) {
     customVoiceStatusMsg.textContent = '✓ Voice DNA active & saved in local storage.';
-    if (state.customPersona.metrics) {
-      renderStylometricsAuditCard(state.customPersona.metrics);
+    if (state.activePersona.metrics) {
+      renderStylometricsAuditCard(state.activePersona.metrics);
+    }
+  } else if (state.customPersonas.length > 0) {
+    customVoiceStatusMsg.textContent = `✓ ${state.customPersonas.length} personal profile voice(s) saved in local storage.`;
+    if (state.customPersonas[0].metrics) {
+      renderStylometricsAuditCard(state.customPersonas[0].metrics);
     }
   }
 }
@@ -326,7 +374,7 @@ function switchStage(stageNum) {
 
 function updateActiveHeroVoiceDisplay() {
   const p = state.activePersona;
-  const isCustom = p.id === 'custom-user-voice';
+  const isCustom = Boolean(p.isCustom || p.id.startsWith('custom-user-voice'));
 
   heroVoiceBadge.textContent = p.badge || p.name;
   heroEraBadge.textContent = p.era || (isCustom ? 'User Personal DNA' : (p.domain || 'Field Archetype'));
@@ -363,19 +411,24 @@ function updateActiveHeroVoiceDisplay() {
 
   personaCardYaml.textContent = formatPersonaYaml(p.card);
 
-  // Stepper subtext and footer labels
-  activeVoicePill.textContent = `Active: ${p.name}`;
-  stageFooterVoiceLabel.textContent = p.name;
-  runButtonLabel.textContent = `✨ Humanize in ${p.name} →`;
+  // Synchronize all voice labels across header, stepper, draft, and modals
+  if (activeVoicePill) activeVoicePill.textContent = `Active: ${p.name} ▾`;
+  if (headerVoiceLabel) headerVoiceLabel.textContent = p.name;
+  if (stage2VoiceLabel) stage2VoiceLabel.textContent = `Voice: ${p.name}`;
+  if (stageFooterVoiceLabel) stageFooterVoiceLabel.textContent = p.name;
+  if (voiceModalActiveLabel) voiceModalActiveLabel.textContent = p.name;
+  if (modalPersonalCount) modalPersonalCount.textContent = state.customPersonas.length;
+  if (runButtonLabel) runButtonLabel.textContent = `✨ Humanize in ${p.name} →`;
 
   // Highlight active cards in grids
-  document.querySelectorAll('.master-card').forEach(c => {
-    c.classList.toggle('active', c.dataset.personaId === p.id);
-    const selectBtn = c.querySelector('.select-voice-btn');
+  document.querySelectorAll('.master-card, .voice-choice-card, .saved-profile-item').forEach(c => {
+    const isThisCard = c.dataset.personaId === p.id;
+    c.classList.toggle('active', isThisCard);
+    const selectBtn = c.querySelector('.select-voice-btn, .select-voice-action-btn, .select-saved-profile-btn');
     if (selectBtn) {
-      selectBtn.textContent = c.dataset.personaId === p.id ? '✓ Active Voice' : 'Select This Voice';
-      selectBtn.classList.toggle('btn-primary', c.dataset.personaId === p.id);
-      selectBtn.classList.toggle('btn-secondary', c.dataset.personaId !== p.id);
+      selectBtn.textContent = isThisCard ? '✓ Active Voice' : (selectBtn.classList.contains('select-saved-profile-btn') ? 'Active' : 'Select Voice');
+      selectBtn.classList.toggle('btn-primary', isThisCard);
+      selectBtn.classList.toggle('btn-secondary', !isThisCard);
     }
   });
 }
@@ -384,6 +437,7 @@ function selectPersona(persona) {
   state.activePersona = persona;
   localStorage.setItem(STORAGE_KEYS.activePersonaId, persona.id);
   updateActiveHeroVoiceDisplay();
+  renderSavedProfilesList();
 }
 
 function renderClassicMasters() {
@@ -477,6 +531,255 @@ function openExcerptModal(persona) {
   excerptModal.classList.remove('hidden');
 }
 
+// --- Voice Chooser Modal & Multi-Profile Management ---
+
+function renderVoiceModalGrid(filter = 'all') {
+  if (!voiceModalGrid) return;
+  voiceModalGrid.innerHTML = '';
+
+  let list = [];
+  if (filter === 'all') {
+    list = [...state.customPersonas, ...CLASSIC_PERSONAS, ...ARCHETYPES];
+  } else if (filter === 'personal') {
+    list = state.customPersonas;
+  } else if (filter === 'masters') {
+    list = CLASSIC_PERSONAS;
+  } else if (filter === 'archetypes') {
+    list = ARCHETYPES;
+  }
+
+  if (list.length === 0) {
+    const emptyDiv = document.createElement('div');
+    emptyDiv.style.cssText = 'grid-column: 1 / -1; padding: 36px 20px; text-align: center; background: var(--bg-surface); border: 1px dashed var(--border-subtle); border-radius: var(--radius-lg);';
+    emptyDiv.innerHTML = `
+      <div style="font-size: 2.2rem; margin-bottom: 10px;">👤</div>
+      <h4 style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary); margin-bottom: 6px;">No Personal Profiles Calibrated Yet</h4>
+      <p style="font-size: 0.84rem; color: var(--text-secondary); max-width: 480px; margin: 0 auto 16px; line-height: 1.5;">
+        Paste or drop 1–2 paragraphs of genuine text you wrote to compute and save your unique Author Voice DNA! You can store multiple profiles.
+      </p>
+      <button type="button" class="btn btn-primary btn-sm" id="empty-modal-calibrate-btn">➕ Calibrate Your Voice Now</button>
+    `;
+    emptyDiv.querySelector('#empty-modal-calibrate-btn').addEventListener('click', () => {
+      closeVoiceModal();
+      switchStage(1);
+      switchVoiceTab('my-voice');
+      if (sampleAuthorText) sampleAuthorText.focus();
+    });
+    voiceModalGrid.appendChild(emptyDiv);
+    return;
+  }
+
+  list.forEach(p => {
+    const isActive = p.id === state.activePersona.id;
+    const isPersonal = Boolean(p.isCustom || p.id.startsWith('custom-user-voice'));
+
+    const card = document.createElement('div');
+    card.className = `voice-choice-card ${isActive ? 'active' : ''} ${isPersonal ? 'personal-card' : ''}`;
+    card.dataset.personaId = p.id;
+
+    let traits = [];
+    if (isPersonal && p.metrics) {
+      traits = [
+        `~${p.metrics.meanSentenceLength}w/sent`,
+        `Burstiness: ${p.metrics.stdDevSentenceLength}`,
+        `TTR: ${p.metrics.typeTokenRatio}`
+      ];
+    } else if (p.card) {
+      traits = [
+        p.domain || 'General',
+        p.card.epistemic_stance?.replace(/_/g, ' ') || 'empirical',
+        p.card.lexical_habits?.formality_level?.replace(/_/g, ' ') || 'plain'
+      ];
+    }
+
+    card.innerHTML = `
+      <div class="choice-card-header">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <span class="choice-card-badge">${escapeHtml(p.badge || p.name)}</span>
+          ${p.era ? `<span class="hero-era-badge" style="font-size:0.68rem;padding:1px 6px;">${escapeHtml(p.era)}</span>` : ''}
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          ${isActive ? '<span class="choice-active-pill">✓ Active</span>' : ''}
+          ${isPersonal ? `<button type="button" class="delete-persona-btn" title="Delete this saved voice profile" data-del-id="${p.id}">🗑️</button>` : ''}
+        </div>
+      </div>
+      <h4 class="choice-card-title">${escapeHtml(p.name)}</h4>
+      <p class="choice-card-desc">${escapeHtml(p.description)}</p>
+      <div class="choice-card-traits">
+        ${traits.map(t => `<span class="trait-pill">${escapeHtml(t)}</span>`).join('')}
+      </div>
+      <div class="choice-card-footer">
+        ${p.sampleExcerpt ? `<button type="button" class="btn btn-secondary btn-sm preview-excerpt-modal-btn" style="font-size:0.72rem;padding:3px 8px;">👁️ Sample</button>` : '<span></span>'}
+        <button type="button" class="btn btn-sm ${isActive ? 'btn-primary' : 'btn-secondary'} select-voice-action-btn" style="font-size:0.75rem;padding:4px 10px;">
+          ${isActive ? '✓ Active Voice' : 'Select Voice'}
+        </button>
+      </div>
+    `;
+
+    // Preview excerpt
+    const prevBtn = card.querySelector('.preview-excerpt-modal-btn');
+    if (prevBtn) {
+      prevBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openExcerptModal(p);
+      });
+    }
+
+    // Delete personal voice
+    const delBtn = card.querySelector('.delete-persona-btn');
+    if (delBtn) {
+      delBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deletePersonalVoice(p.id);
+      });
+    }
+
+    // Select button
+    const selectBtn = card.querySelector('.select-voice-action-btn');
+    selectBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      selectPersona(p);
+      closeVoiceModal();
+    });
+
+    card.addEventListener('click', () => {
+      selectPersona(p);
+      closeVoiceModal();
+    });
+
+    voiceModalGrid.appendChild(card);
+  });
+}
+
+function openVoiceModal(filter = 'all') {
+  state.activeVoiceFilter = filter;
+  voiceModalTabs.forEach(t => {
+    t.classList.toggle('active', t.dataset.vfilter === filter);
+  });
+  if (modalPersonalCount) {
+    modalPersonalCount.textContent = state.customPersonas.length;
+  }
+  if (voiceModalActiveLabel) {
+    voiceModalActiveLabel.textContent = state.activePersona.name;
+  }
+  renderVoiceModalGrid(filter);
+  voiceModal.classList.remove('hidden');
+}
+
+function closeVoiceModal() {
+  voiceModal.classList.add('hidden');
+}
+
+function deletePersonalVoice(id) {
+  const target = state.customPersonas.find(p => p.id === id);
+  const name = target ? target.name : 'this voice';
+  if (!confirm(`Delete personal voice "${name}"? This cannot be undone.`)) return;
+
+  state.customPersonas = state.customPersonas.filter(p => p.id !== id);
+  localStorage.setItem(STORAGE_KEYS.customPersonas, JSON.stringify(state.customPersonas));
+
+  if (state.customPersonas.length > 0) {
+    state.customPersona = state.customPersonas[0];
+    localStorage.setItem(STORAGE_KEYS.customPersona, JSON.stringify(state.customPersonas[0]));
+  } else {
+    state.customPersona = null;
+    localStorage.removeItem(STORAGE_KEYS.customPersona);
+  }
+
+  if (modalPersonalCount) {
+    modalPersonalCount.textContent = state.customPersonas.length;
+  }
+
+  // If the active persona was deleted, fall back
+  if (state.activePersona.id === id) {
+    const fallback = state.customPersonas[0] || CLASSIC_PERSONAS[0];
+    selectPersona(fallback);
+  } else {
+    updateActiveHeroVoiceDisplay();
+  }
+
+  renderVoiceModalGrid(state.activeVoiceFilter);
+  renderSavedProfilesList();
+}
+
+function switchVoiceTab(tabId) {
+  voiceTabs.forEach(t => t.classList.toggle('active', t.dataset.vtab === tabId));
+  Object.keys(voicePanes).forEach(k => {
+    if (voicePanes[k]) {
+      voicePanes[k].classList.toggle('hidden', k !== tabId);
+    }
+  });
+}
+
+function renderSavedProfilesList() {
+  if (!savedProfilesContainer || !savedProfilesList) return;
+  const count = state.customPersonas.length;
+  if (savedProfilesCount) savedProfilesCount.textContent = count;
+
+  if (count === 0) {
+    savedProfilesContainer.classList.add('hidden');
+    savedProfilesList.innerHTML = '';
+    return;
+  }
+
+  savedProfilesContainer.classList.remove('hidden');
+  savedProfilesList.innerHTML = '';
+
+  state.customPersonas.forEach(p => {
+    const isActive = p.id === state.activePersona.id;
+    const item = document.createElement('div');
+    item.className = `saved-profile-item ${isActive ? 'active' : ''}`;
+    item.dataset.personaId = p.id;
+    item.style.cssText = `
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      background: var(--bg-surface-elevated);
+      border: 1px solid ${isActive ? 'var(--accent-blue)' : 'var(--border-subtle)'};
+      cursor: pointer;
+      transition: all 0.2s ease;
+    `;
+
+    item.innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:3px;flex:1;overflow:hidden;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <strong style="font-size:0.86rem;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            ${escapeHtml(p.name)}
+          </strong>
+          ${isActive ? '<span class="choice-active-pill">✓ Active</span>' : ''}
+        </div>
+        <span style="font-size:0.74rem;color:var(--text-muted);font-family:var(--font-mono);">
+          ${escapeHtml(p.era || 'Personal Profile')} • ${p.metrics ? `~${p.metrics.meanSentenceLength}w/sent • TTR ${p.metrics.typeTokenRatio}` : 'Calibrated'}
+        </span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <button type="button" class="btn btn-sm ${isActive ? 'btn-primary' : 'btn-secondary'} select-saved-profile-btn" style="font-size:0.75rem;padding:3px 10px;">
+          ${isActive ? 'Active' : 'Select'}
+        </button>
+        <button type="button" class="delete-persona-btn delete-saved-profile-btn" title="Delete voice profile">
+          🗑️
+        </button>
+      </div>
+    `;
+
+    item.querySelector('.select-saved-profile-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      selectPersona(p);
+    });
+
+    item.querySelector('.delete-saved-profile-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      deletePersonalVoice(p.id);
+    });
+
+    item.addEventListener('click', () => selectPersona(p));
+    savedProfilesList.appendChild(item);
+  });
+}
+
 // --- Forensic Stylometrics Rendering & Extraction ---
 
 function renderStylometricsAuditCard(metrics) {
@@ -546,6 +849,9 @@ async function extractAndSaveUserVoice(sampleText, useAI = false) {
 
   try {
     let customPersona = null;
+    const profileId = `custom-user-voice-${Date.now()}`;
+    const defaultProfileName = `My Voice DNA (${state.customPersonas.length + 1})`;
+    const customName = prompt('Enter a label for this personal author voice profile:', defaultProfileName)?.trim() || defaultProfileName;
 
     if (useAI && state.activeProvider !== 'demo') {
       const engineCfg = getActiveEngineConfig();
@@ -563,16 +869,18 @@ async function extractAndSaveUserVoice(sampleText, useAI = false) {
       const parsedCard = parseYamlToCard(rawYaml, metrics);
       
       customPersona = {
-        id: 'custom-user-voice',
-        name: 'My AI-Calibrated Voice',
-        badge: '👤 My Voice DNA (AI + Stylometrics)',
+        id: profileId,
+        isCustom: true,
+        name: customName,
+        badge: '👤 Personal AI DNA',
         era: `User Forensic DNA (${engineCfg.provider})`,
         domain: metrics.topKeywords.length > 0 ? `Focus: ${metrics.topKeywords.slice(0, 3).join(', ')}` : 'Empirical Discourse',
-        description: `Synthesized via ${engineCfg.provider} from ${metrics.wordCount} words. Mean sentence: ${metrics.meanSentenceLength}w • Burstiness: ${metrics.stdDevSentenceLength} • Stance: ${parsedCard.epistemic_stance}.`,
+        description: `Synthesized via ${engineCfg.provider} from ${metrics.wordCount} words. Mean sentence: ${metrics.meanSentenceLength}w • Burstiness: ${metrics.stdDevSentenceLength} • Stance: ${parsedCard.epistemic_stance || 'empirical'}.`,
         sampleExcerpt: clean.slice(0, 320) + (clean.length > 320 ? '...' : ''),
         metrics,
         rawYaml,
-        card: parsedCard
+        card: parsedCard,
+        createdAt: new Date().toISOString()
       };
     } else {
       if (useAI && state.activeProvider === 'demo') {
@@ -580,15 +888,30 @@ async function extractAndSaveUserVoice(sampleText, useAI = false) {
       }
       // Pure deterministic stylometric modeling
       customPersona = buildPersonaFromStylometrics(metrics, clean);
+      customPersona.id = profileId;
+      customPersona.isCustom = true;
+      customPersona.name = customName;
+      customPersona.badge = '👤 Personal Forensic DNA';
+      customPersona.era = `User Forensic DNA (${new Date().toLocaleDateString()})`;
+      customPersona.createdAt = new Date().toISOString();
     }
 
+    state.customPersonas.unshift(customPersona);
     state.customPersona = customPersona;
+    localStorage.setItem(STORAGE_KEYS.customPersonas, JSON.stringify(state.customPersonas));
     localStorage.setItem(STORAGE_KEYS.customPersona, JSON.stringify(customPersona));
-    selectPersona(customPersona);
+    
+    if (modalPersonalCount) {
+      modalPersonalCount.textContent = state.customPersonas.length;
+    }
 
-    customVoiceStatusMsg.textContent = `✓ Forensic voice DNA calibrated from ${metrics.wordCount} words!`;
+    selectPersona(customPersona);
+    renderSavedProfilesList();
+
+    customVoiceStatusMsg.textContent = `✓ Forensic voice DNA saved as "${customName}" (${metrics.wordCount} words)!`;
     alert(
-      `✨ Author Voice DNA Successfully Calibrated!\n\n` +
+      `✨ Author Voice DNA Successfully Calibrated & Saved!\n\n` +
+      `• Profile Name: ${customName}\n` +
       `• Analyzed: ${metrics.wordCount} words across ${metrics.sentenceCount} sentences\n` +
       `• Mean Sentence Length: ${metrics.meanSentenceLength} words\n` +
       `• Syntactic Burstiness: ${metrics.stdDevSentenceLength} (${metrics.rhythmDescription.split('(')[0].trim()})\n` +
@@ -596,7 +919,7 @@ async function extractAndSaveUserVoice(sampleText, useAI = false) {
       `• Dominant Perspective: ${metrics.dominantPerspective}\n` +
       `• Epistemic Tone: ${metrics.epistemicTone}\n` +
       `• Stance: ${customPersona.card.epistemic_stance.replace(/_/g, ' ')}\n\n` +
-      `Your authentic model is preserved and will govern all rewrites until cleared.`
+      `This voice is now active and saved in your library of personal voices!`
     );
   } catch (err) {
     console.error('Voice extraction error:', err);
@@ -609,14 +932,18 @@ async function extractAndSaveUserVoice(sampleText, useAI = false) {
 }
 
 function clearCustomVoice() {
-  if (confirm('Clear your custom voice DNA and forensic profile from local storage?')) {
+  if (confirm('Clear all your saved personal author profile voices from local storage?')) {
+    state.customPersonas = [];
     state.customPersona = null;
+    localStorage.removeItem(STORAGE_KEYS.customPersonas);
     localStorage.removeItem(STORAGE_KEYS.customPersona);
     sampleAuthorText.value = '';
     customVoiceStatusMsg.textContent = '';
     if (voiceStylometricsCard) voiceStylometricsCard.classList.add('hidden');
-    selectPersona(CLASSIC_PERSONAS[0]);
-    alert('Custom voice cleared. Active voice reset to Bertrand Russell.');
+    if (modalPersonalCount) modalPersonalCount.textContent = '0';
+    renderSavedProfilesList();
+    selectPersona(ARCHETYPES[0]);
+    alert('All personal voice profiles cleared. Active voice reset to Operational Systems Engineer.');
   }
 }
 
@@ -1038,9 +1365,29 @@ async function checkChromeAIStatus() {
 
 function setupEventListeners() {
   // Stepper Bar Stage Selection
-  stageNavItems.forEach(btn => {
-    btn.addEventListener('click', () => switchStage(parseInt(btn.dataset.stage, 10)));
+  stageNavItems.forEach((btn, idx) => {
+    btn.addEventListener('click', () => {
+      // If clicking Stage 1 while already on Stage 1, open Voice Chooser modal directly!
+      if (idx === 0 && state.currentStage === 1) {
+        openVoiceModal('all');
+        return;
+      }
+      switchStage(idx + 1);
+    });
   });
+
+  // Clicking active voice pill in stepper bar directly opens Voice Chooser modal from any stage
+  if (activeVoicePill) {
+    activeVoicePill.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openVoiceModal('all');
+    });
+  }
+
+  // Global Header Voice Button
+  if (voiceSelectorBtn) {
+    voiceSelectorBtn.addEventListener('click', () => openVoiceModal('all'));
+  }
 
   // Stage 1 controls
   gotoStage2Btn.addEventListener('click', () => switchStage(2));
@@ -1050,7 +1397,56 @@ function setupEventListeners() {
   });
   clearCustomVoiceBtn.addEventListener('click', clearCustomVoice);
 
-  // Voice Tabs
+  // Hero card Change Voice button & badge click
+  if (browseAllVoicesBtn) {
+    browseAllVoicesBtn.addEventListener('click', () => openVoiceModal('all'));
+  }
+  if (heroVoiceBadge) {
+    heroVoiceBadge.style.cursor = 'pointer';
+    heroVoiceBadge.title = 'Click to choose active author voice';
+    heroVoiceBadge.addEventListener('click', () => openVoiceModal('all'));
+  }
+
+  // Stage 2 Draft voice switch button
+  if (stage2VoiceBtn) {
+    stage2VoiceBtn.addEventListener('click', () => openVoiceModal('all'));
+  }
+
+  // Voice Chooser Modal controls
+  if (closeVoiceModalBtn) {
+    closeVoiceModalBtn.addEventListener('click', closeVoiceModal);
+  }
+  if (closeVoiceModalDoneBtn) {
+    closeVoiceModalDoneBtn.addEventListener('click', closeVoiceModal);
+  }
+  if (voiceModal) {
+    voiceModal.addEventListener('click', (e) => {
+      if (e.target === voiceModal) closeVoiceModal();
+    });
+  }
+  if (modalCalibrateNewBtn) {
+    modalCalibrateNewBtn.addEventListener('click', () => {
+      closeVoiceModal();
+      switchStage(1);
+      switchVoiceTab('my-voice');
+      if (sampleAuthorText) sampleAuthorText.focus();
+    });
+  }
+  voiceModalTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      openVoiceModal(tab.dataset.vfilter);
+    });
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeVoiceModal();
+      if (excerptModal) excerptModal.classList.add('hidden');
+      if (engineModal) engineModal.classList.add('hidden');
+    }
+  });
+
+  // Voice Tabs (Stage 1)
   voiceTabs.forEach(tab => {
     tab.addEventListener('click', () => {
       voiceTabs.forEach(t => t.classList.toggle('active', t === tab));
@@ -1372,6 +1768,7 @@ function resetStudioFactory() {
   });
 
   // Reset internal state
+  state.customPersonas = [];
   state.customPersona = null;
   state.activePersona = CLASSIC_PERSONAS[0]; // Default to Bertrand Russell
   state.activeProvider = 'demo';
@@ -1418,6 +1815,7 @@ function resetStudioFactory() {
   // Switch to Stage 1
   switchStage(1);
   updateActiveHeroVoiceDisplay();
+  renderSavedProfilesList();
   updateDraftWordCountAndRadar();
   updateEngineUI();
   populateModalInputs();
