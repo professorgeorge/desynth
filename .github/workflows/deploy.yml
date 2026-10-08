@@ -41,15 +41,24 @@ jobs:
         run: npm run build
 
       - name: Setup Pages
+        id: setup_pages
         uses: actions/configure-pages@v5
         with:
           enablement: true
+        continue-on-error: true
 
       - name: Upload artifact
+        if: steps.setup_pages.outcome == 'success'
         uses: actions/upload-pages-artifact@v3
         with:
           path: './docs'
 
       - name: Deploy to GitHub Pages
+        if: steps.setup_pages.outcome == 'success'
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Pages Configuration Check
+        if: steps.setup_pages.outcome != 'success'
+        run: |
+          echo "::warning title=GitHub Pages Setup Required::GitHub Pages has not been activated in this repository yet (or is not set to 'GitHub Actions'). To enable live hosting, go to Settings -> Pages -> Build and deployment -> select Source: 'GitHub Actions'."
