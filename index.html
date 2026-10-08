@@ -17,8 +17,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 
-  <script type="module" crossorigin src="./assets/index-BX7ExSnj.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-CQeDjCn0.css">
+  <script type="module" crossorigin src="./assets/index-GqPMXmEa.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-BpA42U70.css">
 </head>
 <body class="dark-theme">
   <!-- Top Global Navigation Bar -->
@@ -42,6 +42,15 @@
         <button id="engine-selector-btn" class="engine-badge-btn" title="Configure LLM Backend Engine">
           <span class="engine-pulse-dot" id="engine-status-dot"></span>
           <span id="current-engine-label">Demo Simulation</span>
+          <svg class="chevron-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+      </div>
+
+      <div class="voice-badge-group">
+        <span class="engine-header-title">🗣️ Active Voice:</span>
+        <button id="voice-selector-btn" class="engine-badge-btn" title="Choose Active Author Voice (Personal Profiles, Pre-AI Masters, Archetypes)">
+          <span class="voice-indicator-dot" id="header-voice-dot"></span>
+          <span id="header-voice-label">Operational Systems Engineer</span>
           <svg class="chevron-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
         </button>
       </div>
@@ -69,7 +78,7 @@
         <div class="stage-num-badge">1</div>
         <div class="stage-nav-content">
           <span class="stage-nav-title">Author Voice</span>
-          <span class="stage-nav-sub" id="active-voice-pill">Active: Systems Engineer</span>
+          <span class="stage-nav-sub clickable-voice-pill" id="active-voice-pill" title="Click to choose from all author voices">Active: Systems Engineer ▾</span>
         </div>
       </button>
 
@@ -136,6 +145,9 @@
             </div>
           </div>
           <div class="hero-card-right">
+            <button type="button" id="browse-all-voices-btn" class="btn btn-primary btn-sm" title="Choose from personal profiles, pre-AI masters, and archetypes">
+              🎭 Change Voice / Browse All
+            </button>
             <button type="button" id="toggle-hero-yaml-btn" class="btn btn-secondary btn-sm">
               📄 View Voice Card YAML
             </button>
@@ -261,6 +273,18 @@
                     <!-- Punctuation traits added dynamically -->
                   </div>
                 </div>
+
+                <!-- Saved Personal Profiles List -->
+                <div class="saved-profiles-panel hidden" id="saved-profiles-container" style="margin-top:16px;">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                    <h4 style="font-size:0.86rem;font-weight:700;color:var(--text-primary);margin:0;">
+                      📁 Saved Personal Profile Voices (<span id="saved-profiles-count">0</span>)
+                    </h4>
+                  </div>
+                  <div class="saved-profiles-list" id="saved-profiles-list" style="display:flex;flex-direction:column;gap:8px;">
+                    <!-- Dynamically populated via JS -->
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -331,6 +355,11 @@
             <div class="workbench-meta">
               <span class="panel-badge" id="input-stats-badge">0 words</span>
               <span class="panel-file-label hidden" id="loaded-file-name">📄 file.md</span>
+              <button type="button" id="stage2-voice-btn" class="stage2-voice-badge-btn" title="Click to choose or change active author voice">
+                <span class="voice-indicator-dot"></span>
+                <span id="stage2-voice-label">Voice: Systems Engineer</span>
+                <span class="voice-change-tag">Change ▾</span>
+              </button>
             </div>
             <div class="workbench-actions">
               <button id="clear-input-btn" class="icon-btn" title="Clear text">
@@ -568,6 +597,46 @@
     </section>
 
   </main>
+
+  <!-- =========================================================================
+       ACTIVE VOICE CHOOSER MODAL (Personal Profiles, Pre-AI Masters, Archetypes)
+       ========================================================================= -->
+  <div class="modal-overlay hidden" id="voice-modal">
+    <div class="modal-card modal-card-wide">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <h3 class="modal-title">🎭 Select Active Author Voice</h3>
+          <p class="modal-subtitle">Choose from your personal profile voice(s), authentic pre-AI historical masters, or modern field archetypes.</p>
+        </div>
+        <button id="close-voice-modal-btn" class="icon-btn" title="Close">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:6px;">
+          <div class="voice-modal-tabs">
+            <button class="voice-modal-tab active" data-vfilter="all">🌐 All Voices</button>
+            <button class="voice-modal-tab" data-vfilter="personal">👤 Personal Profiles (<span id="modal-personal-count">0</span>)</button>
+            <button class="voice-modal-tab" data-vfilter="masters">📜 Pre-AI Masters (6)</button>
+            <button class="voice-modal-tab" data-vfilter="archetypes">🛠️ Field Archetypes (5)</button>
+          </div>
+          <button type="button" id="modal-calibrate-new-btn" class="btn btn-secondary btn-sm" title="Calibrate and add a new personal profile voice">
+            ➕ Calibrate New Voice
+          </button>
+        </div>
+
+        <div class="voice-modal-grid" id="voice-modal-grid">
+          <!-- Dynamically populated via JS -->
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <div style="margin-right:auto;font-size:0.82rem;color:var(--text-secondary);">
+          Current Active: <strong id="voice-modal-active-label" style="color:var(--accent-blue);">Systems Engineer</strong>
+        </div>
+        <button id="close-voice-modal-done-btn" class="btn btn-primary">Done</button>
+      </div>
+    </div>
+  </div>
 
   <!-- =========================================================================
        HISTORICAL PRE-AI SAMPLE PREVIEW MODAL
