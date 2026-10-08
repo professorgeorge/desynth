@@ -33,7 +33,17 @@ export const TIER_1A_WORDS = [
   'holistic', 'holistically',
   'actionable',
   'impactful',
-  'learnings'
+  'learnings',
+  'foster', 'fostering', 'fosters',
+  'nuanced',
+  'multifaceted',
+  'paramount',
+  'catalyst', 'catalysts',
+  'imperative',
+  'bolster', 'bolstering',
+  'navigate the complexities',
+  'ushering in',
+  'poised to'
 ];
 
 export const TIER_1B_WORDS = [
@@ -56,6 +66,7 @@ export const STRUCTURAL_PATTERNS = [
   { id: 'hedge-stack', regex: /\b(?:could potentially|may eventually|might ultimately)\b/gi, label: 'Hedge-stacked modal prediction' },
   { id: 'narrated-candor', regex: /\b(?:to be (?:completely|fully) transparent|two caveats I (?:would|'d) rather flag)\b/gi, label: 'Narrated candor ("performing honesty")' },
   { id: 'recap-flattery', regex: /\b(?:thanks for all the legwork|your (?:excellent|great) work on)\b/gi, label: 'Recap-flattery conversational opener' },
+  { id: 'moralizing-closer', regex: /\b(?:paves? the way for|a testament to what lies ahead|the journey ahead|endless possibilities|unlocking? the full potential of)\b/gi, label: 'Moralizing / promotional conclusion cliché' }
 ];
 
 export function lintProse(text) {

@@ -292,13 +292,23 @@ RULES:
       const treatmentDirectives = isLeanTighten
         ? `EDITORIAL POLISH DIRECTIVES (TIGHTEN FLUFF, KEEP ALL IDEAS):
 1. ZERO STRUCTURE LOSS: Retain every paragraph break (\\n\\n), heading, bullet item, and list marker intact.
-2. ZERO IDEA LOSS: Retain every single argument, technical explanation, claim, entity, and metric.
-3. EDITORIAL TIGHTENING: Remove circular phrasing, trim verbose nominalizations, and prune unnecessary passive filler to make the prose vigorous and lean (~88%–94% natural length).
-4. REMOVE SYNTHETIC TASTE: Cut robotic throat-clearing, binary contrast clichés ("not merely X; rather Y"), corporate buzzwords ("tapestry", "delve"), and em-dashes.`
+2. ZERO IDEA LOSS: Retain every argument, technical explanation, claim, entity, and metric.
+3. LEAN TIGHTENING: Prune circular phrasing, verbose nominalizations, and passive padding to make prose vigorous (~88%–94% natural length).
+4. ANTI-TRICOLON BAN: Never force descriptions into triplets of adjectives or verbs ("scalable, robust, and intuitive"). Use natural pairs or singular attributes.
+5. ASYMMETRIC BURSTINESS: Break robotic 20-word sentence monotony. Alternate short punchy statements (4–8 words) with longer analytical sentences (22–35 words).
+6. NATURAL NOUN REPETITION: Repeat precise technical terms naturally. Do NOT cycle through forced synonyms.
+7. NO MORALIZING CLOSURES: End on the final concrete finding or statement. Never append generic summarizing optimism ("Ultimately, embracing X paves the way for Y").
+8. ZERO EM-DASHES (—): Use natural colons, semicolons, parentheses, or separate sentences instead of em-dashes.
+9. ZERO SYNTHETIC TASTE: Cut robotic throat-clearing, binary contrast clichés ("not merely X; rather Y"), and corporate buzzwords ("tapestry", "delve", "realm", "beacon", "foster").`
         : `ABSOLUTE 1:1 PRESERVATION DIRECTIVES:
 1. ZERO FORMATTING CHANGES: Retain every single paragraph break (\\n\\n), heading, bullet item, and list marker verbatim.
 2. ZERO IDEA OR DETAIL ALTERATION: Preserve 100% of claims, explanations, metrics, and technical specifics. Do NOT summarize or cut length.
-3. REMOVE SYNTHETIC TASTE ONLY: Cut throat-clearing openings, binary contrast formulas, corporate buzzwords, and em-dashes. Break monotonous robotic sentence cadence with authentic human variation.`;
+3. ANTI-TRICOLON BAN: Never force descriptions into triplets of adjectives or verbs ("scalable, robust, and intuitive"). Use natural pairs or singular attributes.
+4. ASYMMETRIC BURSTINESS: Break robotic 20-word sentence monotony. Alternate short punchy statements (4–8 words) with longer analytical sentences (22–35 words).
+5. NATURAL NOUN REPETITION: Repeat precise technical terms naturally. Do NOT cycle through forced synonyms.
+6. NO MORALIZING CLOSURES: End on the final concrete finding or statement. Never append generic summarizing optimism ("Ultimately, embracing X paves the way for Y").
+7. ZERO EM-DASHES (—): Use natural colons, semicolons, parentheses, or separate sentences instead of em-dashes.
+8. REMOVE SYNTHETIC TASTE ONLY: Cut throat-clearing openings, binary contrast formulas, corporate buzzwords ("tapestry", "delve", "realm", "beacon", "foster"), and em-dashes. Break monotonous robotic sentence cadence with authentic human variation.`;
 
       for (let i = 0; i < chunks.length; i++) {
         const chunk = chunks[i];
@@ -366,13 +376,23 @@ ${chunk.text}`;
       const singleDirectives = isLeanTighten
         ? `EDITORIAL POLISH DIRECTIVES (TIGHTEN FLUFF, KEEP ALL IDEAS):
 1. ZERO STRUCTURE LOSS: Retain every paragraph break (\\n\\n), heading, bullet item, and list marker intact.
-2. ZERO IDEA LOSS: Retain every single argument, technical explanation, claim, entity, and metric.
-3. EDITORIAL TIGHTENING: Remove circular phrasing, trim verbose nominalizations, and prune unnecessary passive filler to make the prose vigorous and lean (~88%–94% natural length).
-4. REMOVE SYNTHETIC TASTE: Cut robotic throat-clearing, binary contrast clichés ("not merely X; rather Y"), corporate buzzwords ("tapestry", "delve"), and em-dashes.`
+2. ZERO IDEA LOSS: Retain every argument, technical explanation, claim, entity, and metric.
+3. LEAN TIGHTENING: Prune circular phrasing, verbose nominalizations, and passive padding to make prose vigorous (~88%–94% natural length).
+4. ANTI-TRICOLON BAN: Never force descriptions into triplets of adjectives or verbs ("scalable, robust, and intuitive"). Use natural pairs or singular attributes.
+5. ASYMMETRIC BURSTINESS: Break robotic 20-word sentence monotony. Alternate short punchy statements (4–8 words) with longer analytical sentences (22–35 words).
+6. NATURAL NOUN REPETITION: Repeat precise technical terms naturally. Do NOT cycle through forced synonyms.
+7. NO MORALIZING CLOSURES: End on the final concrete finding or statement. Never append generic summarizing optimism ("Ultimately, embracing X paves the way for Y").
+8. ZERO EM-DASHES (—): Use natural colons, semicolons, parentheses, or separate sentences instead of em-dashes.
+9. ZERO SYNTHETIC TASTE: Cut robotic throat-clearing, binary contrast clichés ("not merely X; rather Y"), and corporate buzzwords ("tapestry", "delve", "realm", "beacon", "foster").`
         : `ABSOLUTE 1:1 PRESERVATION DIRECTIVES:
 1. ZERO FORMATTING CHANGES: Retain every single paragraph break (\\n\\n), heading, bullet item, and list marker verbatim.
 2. ZERO IDEA OR DETAIL ALTERATION: Preserve 100% of claims, explanations, metrics, and technical specifics. Do NOT summarize or cut length.
-3. REMOVE SYNTHETIC TASTE ONLY: Cut throat-clearing openings, binary contrast formulas, corporate buzzwords, and em-dashes. Break monotonous robotic sentence cadence with authentic human variation.`;
+3. ANTI-TRICOLON BAN: Never force descriptions into triplets of adjectives or verbs ("scalable, robust, and intuitive"). Use natural pairs or singular attributes.
+4. ASYMMETRIC BURSTINESS: Break robotic 20-word sentence monotony. Alternate short punchy statements (4–8 words) with longer analytical sentences (22–35 words).
+5. NATURAL NOUN REPETITION: Repeat precise technical terms naturally. Do NOT cycle through forced synonyms.
+6. NO MORALIZING CLOSURES: End on the final concrete finding or statement. Never append generic summarizing optimism ("Ultimately, embracing X paves the way for Y").
+7. ZERO EM-DASHES (—): Use natural colons, semicolons, parentheses, or separate sentences instead of em-dashes.
+8. REMOVE SYNTHETIC TASTE ONLY: Cut throat-clearing openings, binary contrast formulas, corporate buzzwords ("tapestry", "delve", "realm", "beacon", "foster"), and em-dashes. Break monotonous robotic sentence cadence with authentic human variation.`;
 
       const p3System = `You are a master human author and prose editor.
 Your objective is to humanize AI-generated text that already has sound ideas and logical progression, but suffers from sterile, synthetic "AI taste".

@@ -9,7 +9,7 @@
 
 // Phrase-level throat-clearing patterns to eliminate completely
 export const THROAT_CLEARING_PATTERNS = [
-  /\b(?:in today's (?:fast-paced|digital|interconnected|ever-evolving|modern) (?:world|landscape|ecosystem|society|realm))\b,?\s*/gi,
+  /\b(?:in today's (?:fast-paced|digital|interconnected|ever-evolving|modern|data-driven) (?:world|landscape|ecosystem|society|realm))\b,?\s*/gi,
   /\b(?:in the (?:contemporary|fast-paced|ever-evolving|modern|dynamic) (?:landscape|realm|ecosystem|world|milieu) of)\b\s*/gi,
   /\b(?:it is (?:important|crucial|essential|vital|worth noting|worth mentioning|worth highlighting) to (?:note|remember|recognize|keep in mind|understand) that)\b\s*/gi,
   /\b(?:it goes without saying that)\b\s*/gi,
@@ -24,7 +24,11 @@ export const THROAT_CLEARING_PATTERNS = [
   /\b(?:last but not least,?\s*)\b/gi,
   /\b(?:to be completely (?:transparent|honest|candid),?\s*)\b/gi,
   /\b(?:it['’]s safe to say that)\b\s*/gi,
-  /\b(?:a testament to (?:the fact that|the))\b/gi
+  /\b(?:a testament to (?:the fact that|the))\b/gi,
+  /\b(?:serves as a testament to)\b/gi,
+  /\b(?:crucially,?\s*)\b/gi,
+  /\b(?:importantly,?\s*)\b/gi,
+  /\b(?:by and large,?\s*)\b/gi
 ];
 
 // Nominalization & Wordy Replacement Rules (Wordy -> Direct)
@@ -37,6 +41,7 @@ export const NOMINALIZATION_REPLACEMENTS = [
   { regex: /\bconduct(?:s|ed|ing)? an investigation (?:into|of)\b/gi, replace: 'investigate$1' },
   { regex: /\bmake(?:s|d|ing)? a determination\b/gi, replace: 'determine$1' },
   { regex: /\bfacilitate(?:s|d|ing)? the implementation of\b/gi, replace: 'implement$1' },
+  { regex: /\bfacilitate(?:s|d|ing)?\b/gi, replace: 'help$1' },
   { regex: /\bprovide(?:s|d|ing)? an explanation (?:of|for)\b/gi, replace: 'explain$1' },
   { regex: /\bengage(?:s|d|ing)? in the utilization of\b/gi, replace: 'use$1' },
   { regex: /\butilize(?:s|d|ing)?\b/gi, replace: 'use$1' },
@@ -48,7 +53,16 @@ export const NOMINALIZATION_REPLACEMENTS = [
   { regex: /\bdelve(?:s|d|ing)? into\b/gi, replace: 'examine$1' },
   { regex: /\btapestry of\b/gi, replace: 'mix of' },
   { regex: /\bseamless(?:ly)?\b/gi, replace: 'direct' },
-  { regex: /\bholistic(?:ally)?\b/gi, replace: 'broad' }
+  { regex: /\bholistic(?:ally)?\b/gi, replace: 'broad' },
+  { regex: /\bfoster(?:s|ed|ing)?\b/gi, replace: 'build$1' },
+  { regex: /\bnuanced\b/gi, replace: 'detailed' },
+  { regex: /\bmultifaceted\b/gi, replace: 'varied' },
+  { regex: /\bparamount\b/gi, replace: 'critical' },
+  { regex: /\bimperative to\b/gi, replace: 'necessary to' },
+  { regex: /\bbolster(?:s|ed|ing)?\b/gi, replace: 'strengthen$1' },
+  { regex: /\bnavigate(?:s|d|ing)? (?:the complexities of|the landscape of)\b/gi, replace: 'manage$1' },
+  { regex: /\brealm of\b/gi, replace: 'field of' },
+  { regex: /\bbeacon of\b/gi, replace: 'model of' }
 ];
 
 /**
@@ -93,18 +107,25 @@ export function amputateSlop(text) {
       clean = clean.replace(regex, replace);
     }
 
-    // 3. Purge artificial AI em-dashes (— and --), replacing with natural punctuation
-    clean = clean
-      .replace(/\s*—\s*/g, ', ')
-      .replace(/\s*--\s*/g, ', ')
-      .replace(/,\s*,/g, ',');
+    // 3. Intelligent Context-Aware Em-Dash Surgery
+    // A) Paired em-dashes acting as parenthetical asides: "word — aside — word" -> "word (aside) word"
+    clean = clean.replace(/(\w+)\s*[—]\s*([^—\n]+?)\s*[—]\s*(\w+)/g, '$1 ($2) $3');
+    // B) Subordinating clauses after dash: " — which/because/since/where" -> ", which/because/since/where"
+    clean = clean.replace(/\s*[—|--]\s*(which|because|since|meaning|where|when|while|if|as)\b/gi, ', $1');
+    // C) Other internal clause connections: replace with semicolon or period to avoid comma splices
+    clean = clean.replace(/\s*[—|--]\s*/g, '; ');
+    // D) If semicolon was placed directly before a coordinating conjunction: "; and" -> ", and"
+    clean = clean.replace(/;\s*(and|but|or|so|yet)\b/gi, ', $1');
 
-    // 4. Clean up sentence punctuation debris
+    // 4. Clean up punctuation debris & grammar artifacts
     clean = clean
       .replace(/(^[a-z]|(?<=[.!?]\s+)[a-z])/g, m => m.toUpperCase())
-      .replace(/(?<=[.!?]\s+),\s*/g, '')
-      .replace(/^,\s*/, '')
-      .replace(/,\s*,/g, ',')
+      .replace(/(?<=[.!?]\s+)[,;:]\s*/g, '')
+      .replace(/^[,;:]\s*/, '')
+      .replace(/,\s*,+/g, ',')
+      .replace(/;\s*;+/g, ';')
+      .replace(/\s+,/g, ',')
+      .replace(/\s+;/g, ';')
       .replace(/\.{2,}/g, '.')
       .replace(/[ \t]{2,}/g, ' ')
       .trim();
