@@ -14,7 +14,7 @@
         <span class="logo-icon">🚫</span>
         <div>
           <h1 class="logo-title">Stop-Slop</h1>
-          <span class="logo-subtitle">Human Prose Restorer</span>
+          <span class="logo-subtitle">Cognitive Human Prose Studio</span>
         </div>
       </div>
       <div class="shortcut-badge" title="Shortcut to humanize selection">Alt + H</div>
@@ -33,23 +33,43 @@
       </div>
     </div>
 
+    <!-- Mode Selector Banner -->
+    <div class="mode-bar">
+      <span class="mode-label">Mode:</span>
+      <div class="mode-toggle">
+        <button id="mode-deep-btn" class="mode-btn mode-active" title="Runs full 4-pass cognitive pipeline (Fact Graph, Syntactic Molds, Invariants, Surgery)">
+          🧠 Deep 4-Pass
+        </button>
+        <button id="mode-fast-btn" class="mode-btn" title="Runs rapid single-pass cognitive synthesis">
+          ⚡ Fast
+        </button>
+      </div>
+    </div>
+
     <!-- Quick Humanize Scratchpad -->
     <section class="section">
       <div class="section-header">
         <label for="input-text">Quick Scratchpad</label>
         <button id="clear-btn" class="btn-link">Clear</button>
       </div>
-      <textarea id="input-text" placeholder="Paste or type synthetic AI prose here to humanize instantly..."></textarea>
+      <textarea id="input-text" placeholder="Paste or type synthetic AI prose here to humanize with authentic human cadence..."></textarea>
       
       <div class="action-row">
         <div class="voice-picker-group">
           <select id="voice-select">
-            <option value="george-orwell">🖋️ Plain English (Orwell)</option>
-            <option value="systems-engineer">🛠️ Systems Engineer</option>
-            <option value="scholarly-researcher">🎓 Academic Empirical</option>
-            <option value="bertrand-russell">📜 Bertrand Russell</option>
-            <option value="ursula-le-guin">🌾 Humane Essayist (Le Guin)</option>
-            <option value="claude-shannon">📡 Information Engineer (Shannon)</option>
+            <optgroup label="Classic Pre-AI Masters" id="optgroup-classic">
+              <option value="george-orwell">🖋️ Plain English (Orwell)</option>
+              <option value="bertrand-russell">📜 Bertrand Russell</option>
+              <option value="ursula-le-guin">🌾 Ursula Le Guin</option>
+              <option value="claude-shannon">📡 Claude Shannon</option>
+            </optgroup>
+            <optgroup label="Modern Operational Archetypes" id="optgroup-archetypes">
+              <option value="systems-engineer">🛠️ Systems Engineer</option>
+              <option value="scholarly-researcher">🎓 Academic Researcher</option>
+            </optgroup>
+            <optgroup label="Custom User Voices" id="optgroup-custom">
+              <!-- Dynamically populated from storage -->
+            </optgroup>
           </select>
         </div>
         <button id="humanize-btn" class="btn btn-primary">
@@ -64,9 +84,13 @@
       <div class="section-header">
         <div class="score-pills">
           <span class="pill pill-good" id="score-pill">Score: 98/100</span>
+          <span class="pill" id="burstiness-pill">Burstiness: 14.2</span>
           <span class="pill" id="pruned-pill">0 Tells Pruned</span>
         </div>
-        <button id="copy-btn" class="btn btn-sm btn-secondary">Copy</button>
+        <div class="output-actions">
+          <button id="popup-diff-btn" class="btn btn-sm btn-ghost">🔍 Diff</button>
+          <button id="copy-btn" class="btn btn-sm btn-secondary">Copy</button>
+        </div>
       </div>
       <div id="output-text" class="output-box" tabindex="0"></div>
     </section>
@@ -74,7 +98,7 @@
     <!-- Engine & Settings Accordion -->
     <section class="section settings-section">
       <details id="settings-details">
-        <summary>⚙️ Engine & API Settings</summary>
+        <summary>⚙️ Engine & Custom Voices</summary>
         <div class="settings-body">
           <div class="form-group">
             <label for="provider-select">Processing Engine:</label>
@@ -127,15 +151,28 @@
             </div>
           </div>
 
-          <button id="save-settings-btn" class="btn btn-sm btn-primary">Save Settings</button>
-          <span id="save-msg" class="save-msg hidden">Saved!</span>
+          <!-- Custom Voice Backup / Import Sync -->
+          <div class="custom-voice-sync-panel">
+            <span class="sync-title">📂 Custom Voice Studio Sync:</span>
+            <div class="sync-actions">
+              <button id="import-voice-btn" class="btn btn-sm btn-secondary">📥 Import JSON Voices</button>
+              <button id="export-voice-btn" class="btn btn-sm btn-secondary">📤 Backup Voices</button>
+              <input type="file" id="voice-file-input" accept=".json" class="hidden">
+            </div>
+            <div id="custom-voice-count" class="sync-subtext">0 custom voices synced</div>
+          </div>
+
+          <div class="save-row">
+            <button id="save-settings-btn" class="btn btn-sm btn-primary">Save Settings</button>
+            <span id="save-msg" class="save-msg hidden">Saved!</span>
+          </div>
         </div>
       </details>
     </section>
 
     <!-- Footer -->
     <footer class="footer">
-      <span>Right-click any selected text on any webpage to humanize!</span>
+      <span>Right-click any selected text on any webpage (or press <strong>Alt + H</strong>)</span>
     </footer>
   </div>
 

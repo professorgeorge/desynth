@@ -135,12 +135,19 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     });
   }
 
-  // Execute humanization
+  // Execute humanization with progress updates
   const result = await humanizeText({
     text,
     voiceId,
+    mode: storage.mode || 'deep',
     provider,
-    config: storage
+    config: storage,
+    onProgress: (status) => {
+      chrome.tabs.sendMessage(tab.id, {
+        action: 'HUMANIZE_PROGRESS',
+        status
+      }).catch(() => {});
+    }
   });
 
   // Calculate statistics
@@ -168,6 +175,7 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
       const result = await humanizeText({
         text: req.text,
         voiceId: req.voiceId || storage.defaultVoice || 'george-orwell',
+        mode: req.mode || storage.mode || 'deep',
         provider: req.provider || storage.provider || 'instant',
         config: storage
       });
