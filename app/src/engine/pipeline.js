@@ -9,17 +9,123 @@ import {
   PARALLEL_EXEMPLARS
 } from './deslop-surgery.js';
 
+/**
+ * Partitions a document into coherent semantic sections for low-memory, chunk-by-chunk execution.
+ * Respects Markdown headings (#, ##, ###), lists, and paragraph breaks.
+ * @param {string} text - Input manuscript
+ * @param {number} targetWordsPerChunk - Target word count per chunk (default 850)
+ * @returns {Array<{ index: number, total: number, title: string, text: string, words: number, precedingContext: string }>}
+ */
+export function chunkDocument(text, targetWordsPerChunk = 850) {
+  if (!text || typeof text !== 'string') return [];
+
+  const rawParagraphs = text.split(/\n\n+/).filter(p => p.trim().length > 0);
+  const totalWords = text.trim().split(/\s+/).filter(Boolean).length;
+
+  if (totalWords <= targetWordsPerChunk * 1.4 || rawParagraphs.length <= 2) {
+    return [{
+      index: 1,
+      total: 1,
+      title: 'Full Document',
+      text: text.trim(),
+      words: totalWords,
+      precedingContext: ''
+    }];
+  }
+
+  const chunks = [];
+  let currentParas = [];
+  let currentWords = 0;
+  let currentTitle = '';
+
+  const extractTitle = (p) => {
+    const headingMatch = p.match(/^#{1,6}\s+(.+)$/m);
+    if (headingMatch) return headingMatch[1].trim();
+    const numberedMatch = p.match(/^(\d+\.?\s+[A-Z][^\n]{3,60})/m);
+    if (numberedMatch) return numberedMatch[1].trim();
+    const words = p.replace(/^[#*\-0-9.\s]+/, '').trim().split(/\s+/).slice(0, 5).join(' ');
+    return words ? `"${words}..."` : 'Section';
+  };
+
+  for (let i = 0; i < rawParagraphs.length; i++) {
+    const para = rawParagraphs[i];
+    const paraWords = para.trim().split(/\s+/).filter(Boolean).length;
+    if (paraWords === 0) continue;
+
+    const hasHeading = /^#{1,6}\s+/.test(para.trim());
+
+    // Check if we should split:
+    // 1) Heading with at least 350 accumulated words
+    // 2) Accumulated words plus current para exceeds targetWordsPerChunk
+    const shouldSplitHeading = hasHeading && currentWords >= 350;
+    const shouldSplitWords = (currentWords + paraWords > targetWordsPerChunk) && currentParas.length > 0;
+
+    if (shouldSplitHeading || shouldSplitWords) {
+      if (currentParas.length > 0) {
+        chunks.push({
+          title: currentTitle || `Section ${chunks.length + 1}`,
+          paras: [...currentParas],
+          words: currentWords
+        });
+        currentParas = [];
+        currentWords = 0;
+        currentTitle = '';
+      }
+    }
+
+    if (!currentTitle) {
+      currentTitle = extractTitle(para);
+    }
+    currentParas.push(para);
+    currentWords += paraWords;
+  }
+
+  if (currentParas.length > 0) {
+    chunks.push({
+      title: currentTitle || `Section ${chunks.length + 1}`,
+      paras: [...currentParas],
+      words: currentWords
+    });
+  }
+
+  const total = chunks.length;
+  let prevLastSentence = '';
+
+  return chunks.map((c, idx) => {
+    const chunkText = c.paras.join('\n\n').trim();
+    const precedingContext = prevLastSentence;
+
+    const sentences = chunkText.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0);
+    prevLastSentence = sentences.length > 0 ? sentences[sentences.length - 1].slice(-160).trim() : '';
+
+    return {
+      index: idx + 1,
+      total,
+      title: c.title || `Section ${idx + 1}`,
+      text: chunkText,
+      words: c.words,
+      precedingContext
+    };
+  });
+}
+
 export async function runCognitivePipeline({
   input,
   persona,
   engineConfig,
   mode = 'preserve-format', // 'preserve-format' (default) vs 'compress'
   density = 'balanced',    // 'dense' (45%), 'balanced' (60%), 'narrative' (75%)
+  strategy = 'auto',       // 'auto' (default), 'chunks', 'single-pass'
   onStepUpdate
 }) {
   const isPreserveFormat = mode === 'preserve-format';
   const inputWords = input.trim().split(/\s+/).filter(Boolean).length;
   
+  // Determine if section chunking should be used
+  const isChunking = strategy === 'chunks' || (strategy === 'auto' && inputWords > 1400);
+  const chunks = isChunking ? chunkDocument(input, 850) : null;
+  const useMultiChunk = isChunking && chunks && chunks.length > 1;
+
   // Calculate target compression budget (used only in compress mode)
   const ratio = density === 'dense' ? 0.45 : density === 'narrative' ? 0.75 : 0.60;
   const targetWords = isPreserveFormat ? inputWords : Math.max(30, Math.round(inputWords * ratio));
@@ -28,6 +134,9 @@ export async function runCognitivePipeline({
 
   const result = {
     mode,
+    strategy,
+    isChunking: useMultiChunk,
+    totalChunks: useMultiChunk ? chunks.length : 1,
     preserveFormatting: isPreserveFormat,
     factGraph: '',
     syntacticFrames: [],
@@ -48,7 +157,7 @@ export async function runCognitivePipeline({
   // PASS 1: STRUCTURAL / FACTUAL AUDIT
   // =========================================================================
   if (isPreserveFormat) {
-    onStepUpdate({ step: 1, name: 'Pass 1: Structural & Rhetorical Audit (Preserving Layout)', status: 'running' });
+    onStepUpdate({ step: 1, name: 'Pass 1: Structural & Strategy Audit (Preserving Layout)', status: 'running' });
     await new Promise(r => setTimeout(r, 400));
 
     const paragraphs = input.split(/\n\n+/).filter(p => p.trim().length > 0);
@@ -56,11 +165,13 @@ export async function runCognitivePipeline({
     const listItems = (input.match(/^\s*([-*+]|\d+\.)\s+.+$/gm) || []).length;
 
     result.factGraph = [
-      `🛡️ DOCUMENT SKELETON MAP:`,
+      `🛡️ DOCUMENT SKELETON & STRATEGY MAP:`,
       `• Paragraphs: ${paragraphs.length} blocks locked for 1:1 preservation`,
       `• Headings: ${headers} markdown sections mapped`,
       `• List Items: ${listItems} structured points mapped`,
       `• Total Words: ${inputWords} words`,
+      `• Execution Strategy: ${useMultiChunk ? `🧩 Semantic Chunking (${chunks.length} sections, ~${Math.round(inputWords / chunks.length)} words each)` : '⚡ Whole-Document Single-Pass'}`,
+      `• Memory Footprint: ${useMultiChunk ? 'Ultra-low RAM (Optimized for 8GB–16GB laptops / 2k–4k Context)' : 'Full Buffer (Requires 24GB+ VRAM / 32k Context)'}`,
       ``,
       `🎯 FIDELITY & DE-SLOP DIRECTIVES:`,
       `• 1:1 Layout & Paragraphs: Retain every line break, heading, and list marker.`,
@@ -70,7 +181,7 @@ export async function runCognitivePipeline({
 
     onStepUpdate({
       step: 1,
-      name: 'Pass 1: Structural & Rhetorical Audit',
+      name: 'Pass 1: Structural & Strategy Audit',
       status: 'completed',
       data: result.factGraph
     });
@@ -147,18 +258,92 @@ RULES:
   // PASS 3: SYNTHESIS / HUMANIZATION
   // =========================================================================
   if (isPreserveFormat) {
-    onStepUpdate({ step: 3, name: 'Pass 3: Format-Preserving Humanization (De-Synthesizing Taste)', status: 'running' });
-
     let draft = '';
+    const framesText = frames.map((f, i) => `${i + 1}. "${f}"`).join('\n');
+
     if (engineConfig.provider === 'demo' && matchingPreset) {
+      onStepUpdate({ step: 3, name: 'Pass 3: Format-Preserving Humanization (Demo)', status: 'running' });
       await new Promise(r => setTimeout(r, 700));
       draft = matchingPreset.demoRewrite;
     } else if (engineConfig.provider === 'demo') {
+      onStepUpdate({ step: 3, name: 'Pass 3: Format-Preserving Humanization (Demo)', status: 'running' });
       await new Promise(r => setTimeout(r, 700));
       draft = humanizePreservingStructure(input, persona);
+    } else if (useMultiChunk) {
+      // Execute chunk-by-chunk for memory safety and maximum focus
+      const sanitizedParts = [];
+
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+        const progressPct = Math.round(((i) / chunks.length) * 100);
+
+        onStepUpdate({
+          step: 3,
+          name: `Pass 3: Section ${chunk.index} of ${chunk.total} ("${chunk.title}") [${progressPct}%]`,
+          status: 'running',
+          data: {
+            currentChunk: chunk.index,
+            totalChunks: chunk.total,
+            chunkTitle: chunk.title,
+            progressPct
+          }
+        });
+
+        const p3ChunkSystem = `You are a master human author and prose editor.
+Your objective is to humanize AI-generated text that already has sound ideas and logical progression, but suffers from sterile, synthetic "AI taste".
+
+ABSOLUTE PRESERVATION MANDATES:
+1. ZERO FORMATTING CHANGES:
+   - Retain every single paragraph break (\\n\\n) within this section exactly as written.
+   - Retain all markdown headings (#, ##, ###), bullet lists (-, *), numbered lists (1.), and quotes verbatim.
+   - NEVER combine multiple paragraphs into one single block.
+2. ZERO IDEA ALTERATION:
+   - Preserve every argument, technical explanation, claim, entity, and metric in this section.
+   - Do NOT add new claims and do NOT remove existing points.
+3. REMOVE SYNTHETIC TASTE & AI SLOP:
+   - Cut throat-clearing openings ("In today's fast-paced world", "It is crucial to remember that", "When it comes to").
+   - Eliminate false binary contrasts ("It is not merely about X; rather, it is about Y").
+   - Remove robotic corporate padding ("delve into", "tapestry", "seamlessly", "pivotal role", "at its core", "game-changer", "fostering").
+   - Purge artificial em-dashes (— and --); use natural commas, semicolons, or colons instead.
+   - Break monotonous robotic sentence cadence with authentic human variation.
+4. VOICE INFLUENCE:
+   - Adopt the natural vocabulary and cadence of the author persona: ${persona.name} (${persona.card?.epistemic_stance || 'empirical'}).
+
+Output ONLY the humanized prose for this section with exact formatting preserved. No preamble, no quotes, no conversational filler.`;
+
+        let p3ChunkUser = `AUTHOR PERSONA MODEL:
+${result.personaCardYaml}
+
+AUTHENTIC CADENCE SKELETONS TO EMULATE:
+${framesText}\n\n`;
+
+        if (chunk.precedingContext) {
+          p3ChunkUser += `PRECEDING THOUGHT CONTEXT (Maintain seamless tone & flow):
+"${chunk.precedingContext}"\n\n`;
+        }
+
+        p3ChunkUser += `CURRENT SECTION TO HUMANIZE (PRESERVE EXACT PARAGRAPHS, HEADINGS, AND IDEAS):
+${chunk.text}`;
+
+        const chunkOutput = await callLLM({
+          ...engineConfig,
+          systemPrompt: p3ChunkSystem,
+          userPrompt: p3ChunkUser,
+          onProgress: (p) => {
+            const statusLabel = typeof p === 'string' && p.startsWith('[Loading') ? p : `Polishing Section ${chunk.index}/${chunk.total} ("${chunk.title}")`;
+            onStepUpdate({ step: 3, name: `Pass 3: ${statusLabel}`, status: 'running' });
+          }
+        });
+
+        // Run surgical amputation on each chunk
+        const cleanedChunk = amputateSlop(chunkOutput || chunk.text);
+        sanitizedParts.push(cleanedChunk.trim());
+      }
+
+      draft = sanitizedParts.join('\n\n');
     } else {
-      // LLM execution with strict formatting and idea preservation directives
-      const framesText = frames.map((f, i) => `${i + 1}. "${f}"`).join('\n');
+      // Single-Pass LLM execution with strict formatting and idea preservation directives
+      onStepUpdate({ step: 3, name: 'Pass 3: Format-Preserving Humanization (Single-Pass)', status: 'running' });
 
       const p3System = `You are a master human author and prose editor.
 Your objective is to humanize AI-generated text that already has sound ideas and logical progression, but suffers from sterile, synthetic "AI taste".
@@ -205,7 +390,7 @@ ${input}`;
     result.rawDraft = (draft || '').trim();
     onStepUpdate({
       step: 3,
-      name: 'Pass 3: Format-Preserving Humanization',
+      name: `Pass 3: Format-Preserving Humanization ${useMultiChunk ? `(${chunks.length} sections combined)` : 'Complete'}`,
       status: 'completed',
       data: result.rawDraft
     });
@@ -308,6 +493,7 @@ Write the compressed human version now (Target: ~${targetWords} words):`;
     notes.push(`Transformation Mode: PRESERVE FORMAT & IDEAS (High Fidelity)`);
     notes.push(`Layout Fidelity: 100% preserved (${outParas}/${inParas} paragraphs, all headers/lists intact)`);
     notes.push(`Idea Fidelity: 100% preserved (Zero claims or arguments altered)`);
+    notes.push(`Execution Strategy: ${useMultiChunk ? `Section-by-Section (${chunks.length} chunks, low RAM)` : 'Single-Pass (Full document)'}`);
   } else {
     const compLabel = result.compressionRatio > 0 ? `-${result.compressionRatio}% reduction` : `${outputWords} words`;
     notes.push(`Transformation Mode: COGNITIVE COMPRESSION (~${targetWords} words)`);

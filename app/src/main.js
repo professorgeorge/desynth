@@ -38,7 +38,8 @@ const STORAGE_KEYS = {
   customPersonas: 'stop_slop_custom_personas',
   activePersonaId: 'stop_slop_active_persona_id',
   theme: 'stop_slop_theme',
-  mode: 'stop_slop_mode'
+  mode: 'stop_slop_mode',
+  strategy: 'stop_slop_strategy'
 };
 
 // Cloud provider presets
@@ -117,6 +118,7 @@ const state = {
   activeResultTab: 'rewrite',
   theme: localStorage.getItem('stop_slop_theme') || 'dark',
   transformationMode: localStorage.getItem('stop_slop_mode') || 'preserve-format',
+  executionStrategy: localStorage.getItem('stop_slop_strategy') || 'auto',
   activeProvider: localStorage.getItem(STORAGE_KEYS.provider) || 'demo',
   providerConfigs: {
     demo: {},
@@ -236,10 +238,13 @@ const sourceTextEl = document.getElementById('source-text');
 const presetSelectorEl = document.getElementById('preset-selector');
 const densitySelectorEl = document.getElementById('density-selector');
 const transformationModeSelect = document.getElementById('transformation-mode-select');
+const executionStrategySelect = document.getElementById('execution-strategy-select');
 const densityControlWrapper = document.getElementById('density-control-wrapper');
 const pillLayoutFidelity = document.getElementById('pill-layout-fidelity');
 const pillIdeaFidelity = document.getElementById('pill-idea-fidelity');
 const pillDeslopFidelity = document.getElementById('pill-deslop-fidelity');
+const pillStrategyFidelity = document.getElementById('pill-strategy-fidelity');
+const pillStrategyText = document.getElementById('pill-strategy-text');
 const clearInputBtn = document.getElementById('clear-input-btn');
 const inputStatsBadge = document.getElementById('input-stats-badge');
 const loadedFileName = document.getElementById('loaded-file-name');
@@ -398,10 +403,50 @@ function updateTransformationModeUI() {
   }
 }
 
+function updateExecutionStrategyUI() {
+  const strategy = state.executionStrategy || 'auto';
+  if (executionStrategySelect) {
+    executionStrategySelect.value = strategy;
+  }
+  updateStrategyPill();
+}
+
+function updateStrategyPill() {
+  if (!pillStrategyText) return;
+  const text = sourceTextEl ? sourceTextEl.value.trim() : '';
+  const words = text ? text.split(/\s+/).filter(Boolean).length : 0;
+  const strategy = state.executionStrategy || 'auto';
+
+  if (words === 0) {
+    pillStrategyText.textContent = strategy === 'chunks'
+      ? 'Section Chunking Active'
+      : strategy === 'single-pass'
+      ? 'Single-Pass Active'
+      : 'Auto-Chunk Ready';
+    return;
+  }
+
+  if (strategy === 'chunks') {
+    const estChunks = Math.max(1, Math.ceil(words / 850));
+    pillStrategyText.textContent = `🧩 ${estChunks} Section${estChunks > 1 ? 's' : ''} (~850 w/chunk)`;
+  } else if (strategy === 'single-pass') {
+    pillStrategyText.textContent = `⚡ Single-Pass (${words} words)`;
+  } else {
+    // auto
+    if (words > 1400) {
+      const estChunks = Math.max(2, Math.ceil(words / 850));
+      pillStrategyText.textContent = `🧩 Auto: ${estChunks} Sections (~850 w/chunk)`;
+    } else {
+      pillStrategyText.textContent = `⚡ Auto: Single-Pass (${words} words)`;
+    }
+  }
+}
+
 // --- Initialization ---
 function init() {
   applyTheme(state.theme, false);
   updateTransformationModeUI();
+  updateExecutionStrategyUI();
   renderPresetSelector();
   renderClassicMasters();
   renderModernArchetypes();
@@ -1040,6 +1085,7 @@ function updateDraftWordCountAndRadar() {
   const text = sourceTextEl.value.trim();
   const words = text ? text.split(/\s+/).filter(Boolean).length : 0;
   inputStatsBadge.textContent = `${words} ${words === 1 ? 'word' : 'words'}`;
+  updateStrategyPill();
 
   if (!text) {
     draftStatusPill.textContent = 'Draft empty';
@@ -1217,6 +1263,7 @@ async function handleRunPipeline() {
       engineConfig: engineCfg,
       mode: modeVal,
       density: densityVal,
+      strategy: state.executionStrategy || 'auto',
       onStepUpdate: ({ step, name, status, data }) => {
         updateStepperState(step, status);
         const liveStatus = document.getElementById('stepper-live-status');
@@ -1293,7 +1340,8 @@ function renderResults(result) {
   // Update Compression Badge
   if (compressionBadge) {
     if (result.mode === 'preserve-format' || result.preserveFormatting) {
-      compressionBadge.textContent = `🛡️ 1:1 Format & Idea Fidelity (${result.outputWords || 0} words)`;
+      const chunkTag = result.isChunking ? ` • 🧩 ${result.totalChunks} Sections` : '';
+      compressionBadge.textContent = `🛡️ 1:1 Format & Idea Fidelity${chunkTag} (${result.outputWords || 0} words)`;
       compressionBadge.style.background = 'rgba(78, 163, 130, 0.15)';
       compressionBadge.style.color = 'var(--accent-green)';
       compressionBadge.style.borderColor = 'rgba(78, 163, 130, 0.35)';
@@ -1597,6 +1645,14 @@ function setupEventListeners() {
       state.transformationMode = e.target.value;
       localStorage.setItem('stop_slop_mode', state.transformationMode);
       updateTransformationModeUI();
+    });
+  }
+
+  if (executionStrategySelect) {
+    executionStrategySelect.addEventListener('change', (e) => {
+      state.executionStrategy = e.target.value;
+      localStorage.setItem('stop_slop_strategy', state.executionStrategy);
+      updateStrategyPill();
     });
   }
 

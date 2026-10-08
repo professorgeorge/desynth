@@ -383,16 +383,29 @@
             <span>Drop draft file (.txt, .md, Word .docx, PDF .pdf) here, or browse</span>
           </div>
 
-          <!-- Transformation Mode & Fidelity Settings Bar -->
+          <!-- Transformation Mode & Execution Strategy Settings Bar -->
           <div class="workbench-settings-bar">
             <div class="settings-left-col">
               <label for="transformation-mode-select" class="settings-bar-label">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                <span>Transformation Mode:</span>
+                <span>Mode:</span>
               </label>
               <select id="transformation-mode-select" class="mode-select-dropdown">
                 <option value="preserve-format" selected>🛡️ Preserve Format &amp; Ideas (De-Synthesize Taste Only)</option>
                 <option value="compress">⚡ Cognitive Compression (Aggressively Condense Length)</option>
+              </select>
+            </div>
+
+            <!-- Execution Strategy: Semantic Chunking vs Whole Manuscript -->
+            <div class="settings-mid-col">
+              <label for="execution-strategy-select" class="settings-bar-label">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                <span>Strategy:</span>
+              </label>
+              <select id="execution-strategy-select" class="mode-select-dropdown" title="Choose execution method: semantic section chunking for standard RAM, or whole manuscript single-pass">
+                <option value="auto" selected>🤖 Auto (Chunk sections if &gt; 1,400 words)</option>
+                <option value="chunks">🧩 Section-by-Section (Low RAM / 8GB–16GB Laptops)</option>
+                <option value="single-pass">⚡ Whole Document Single-Pass (High VRAM / 32k+)</option>
               </select>
             </div>
 
@@ -419,6 +432,10 @@
             <div class="fidelity-pill active" id="pill-deslop-fidelity" title="Only artificial AI phrasing, throat-clearing, clichés, and em dashes are sanitized">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
               <span>Purge Synthetic AI Taste</span>
+            </div>
+            <div class="fidelity-pill active" id="pill-strategy-fidelity" title="Active memory-safe processing strategy">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              <span id="pill-strategy-text">Auto-Chunk Ready</span>
             </div>
           </div>
 
