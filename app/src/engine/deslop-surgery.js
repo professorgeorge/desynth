@@ -8,9 +8,10 @@
  */
 
 // Phrase-level throat-clearing patterns to eliminate completely
+// Phrase-level throat-clearing patterns to eliminate completely
 export const THROAT_CLEARING_PATTERNS = [
-  /\b(?:in today's (?:fast-paced|digital|interconnected|ever-evolving|modern|data-driven) (?:world|landscape|ecosystem|society|realm))\b,?\s*/gi,
-  /\b(?:in the (?:contemporary|fast-paced|ever-evolving|modern|dynamic) (?:landscape|realm|ecosystem|world|milieu) of)\b\s*/gi,
+  /\b(?:in today['’]s\s+(?:[a-z-]+(?:\s+[a-z-]+)*)\s+(?:world|landscape|ecosystem|society|realm|market))\b,?\s*/gi,
+  /\b(?:in the\s+(?:contemporary|fast-paced|ever-evolving|modern|dynamic|digital)\s+(?:landscape|realm|ecosystem|world|milieu)\s+of)\b\s*/gi,
   /\b(?:it is (?:important|crucial|essential|vital|worth noting|worth mentioning|worth highlighting) to (?:note|remember|recognize|keep in mind|understand) that)\b\s*/gi,
   /\b(?:it goes without saying that)\b\s*/gi,
   /\b(?:needless to say,?\s*)\b/gi,
@@ -35,32 +36,65 @@ export const THROAT_CLEARING_PATTERNS = [
 export const NOMINALIZATION_REPLACEMENTS = [
   { regex: /\bin order to\b/gi, replace: 'to' },
   { regex: /\bdue to the fact that\b/gi, replace: 'because' },
-  { regex: /\bserves as (?:a|an)\b/gi, replace: 'is $1' },
+  { regex: /\bserves as (?:a|an)\b/gi, replace: 'is' },
   { regex: /\bserves to\b/gi, replace: 'helps' },
   { regex: /\bfeatures as\b/gi, replace: 'is' },
-  { regex: /\bconduct(?:s|ed|ing)? an investigation (?:into|of)\b/gi, replace: 'investigate$1' },
-  { regex: /\bmake(?:s|d|ing)? a determination\b/gi, replace: 'determine$1' },
-  { regex: /\bfacilitate(?:s|d|ing)? the implementation of\b/gi, replace: 'implement$1' },
-  { regex: /\bfacilitate(?:s|d|ing)?\b/gi, replace: 'help$1' },
-  { regex: /\bprovide(?:s|d|ing)? an explanation (?:of|for)\b/gi, replace: 'explain$1' },
-  { regex: /\bengage(?:s|d|ing)? in the utilization of\b/gi, replace: 'use$1' },
-  { regex: /\butilize(?:s|d|ing)?\b/gi, replace: 'use$1' },
-  { regex: /\bcommence(?:s|d|ing)?\b/gi, replace: 'start$1' },
-  { regex: /\bascertain(?:s|ed|ing)?\b/gi, replace: 'find$1' },
+  { regex: /\bconduct(?:s)? an investigation (?:into|of)\b/gi, replace: 'investigates' },
+  { regex: /\bconducted an investigation (?:into|of)\b/gi, replace: 'investigated' },
+  { regex: /\bconducting an investigation (?:into|of)\b/gi, replace: 'investigating' },
+  { regex: /\bconduct an investigation (?:into|of)\b/gi, replace: 'investigate' },
+  { regex: /\bmake(?:s)? a determination\b/gi, replace: 'determines' },
+  { regex: /\bmade a determination\b/gi, replace: 'determined' },
+  { regex: /\bmaking a determination\b/gi, replace: 'determining' },
+  { regex: /\bfacilitate the implementation of\b/gi, replace: 'implement' },
+  { regex: /\bfacilitates the implementation of\b/gi, replace: 'implements' },
+  { regex: /\bfacilitated the implementation of\b/gi, replace: 'implemented' },
+  { regex: /\bfacilitating the implementation of\b/gi, replace: 'implementing' },
+  { regex: /\bfacilitate\b/gi, replace: 'help' },
+  { regex: /\bfacilitates\b/gi, replace: 'helps' },
+  { regex: /\bfacilitated\b/gi, replace: 'helped' },
+  { regex: /\bfacilitating\b/gi, replace: 'helping' },
+  { regex: /\bprovide(?:s)? an explanation (?:of|for)\b/gi, replace: 'explains' },
+  { regex: /\bprovided an explanation (?:of|for)\b/gi, replace: 'explained' },
+  { regex: /\bproviding an explanation (?:of|for)\b/gi, replace: 'explaining' },
+  { regex: /\bengage(?:s)? in the utilization of\b/gi, replace: 'uses' },
+  { regex: /\bengaged in the utilization of\b/gi, replace: 'used' },
+  { regex: /\butilize\b/gi, replace: 'use' },
+  { regex: /\butilizes\b/gi, replace: 'uses' },
+  { regex: /\butilized\b/gi, replace: 'used' },
+  { regex: /\butilizing\b/gi, replace: 'using' },
+  { regex: /\butilization\b/gi, replace: 'use' },
+  { regex: /\bcommence\b/gi, replace: 'start' },
+  { regex: /\bcommences\b/gi, replace: 'starts' },
+  { regex: /\bcommenced\b/gi, replace: 'started' },
+  { regex: /\bcommencing\b/gi, replace: 'starting' },
+  { regex: /\bascertain\b/gi, replace: 'find' },
+  { regex: /\bascertains\b/gi, replace: 'finds' },
+  { regex: /\bascertained\b/gi, replace: 'found' },
+  { regex: /\bascertaining\b/gi, replace: 'finding' },
   { regex: /\bpivotal role\b/gi, replace: 'key part' },
   { regex: /\bwatershed moment\b/gi, replace: 'turning point' },
   { regex: /\bgame-changer\b/gi, replace: 'major shift' },
-  { regex: /\bdelve(?:s|d|ing)? into\b/gi, replace: 'examine$1' },
+  { regex: /\bdelve into\b/gi, replace: 'examine' },
+  { regex: /\bdelves into\b/gi, replace: 'examines' },
+  { regex: /\bdelved into\b/gi, replace: 'examined' },
+  { regex: /\bdelving into\b/gi, replace: 'examining' },
   { regex: /\btapestry of\b/gi, replace: 'mix of' },
   { regex: /\bseamless(?:ly)?\b/gi, replace: 'direct' },
   { regex: /\bholistic(?:ally)?\b/gi, replace: 'broad' },
-  { regex: /\bfoster(?:s|ed|ing)?\b/gi, replace: 'build$1' },
+  { regex: /\bfoster\b/gi, replace: 'build' },
+  { regex: /\bfosters\b/gi, replace: 'builds' },
+  { regex: /\bfostered\b/gi, replace: 'built' },
+  { regex: /\bfostering\b/gi, replace: 'building' },
   { regex: /\bnuanced\b/gi, replace: 'detailed' },
   { regex: /\bmultifaceted\b/gi, replace: 'varied' },
   { regex: /\bparamount\b/gi, replace: 'critical' },
   { regex: /\bimperative to\b/gi, replace: 'necessary to' },
-  { regex: /\bbolster(?:s|ed|ing)?\b/gi, replace: 'strengthen$1' },
-  { regex: /\bnavigate(?:s|d|ing)? (?:the complexities of|the landscape of)\b/gi, replace: 'manage$1' },
+  { regex: /\bbolster\b/gi, replace: 'strengthen' },
+  { regex: /\bbolsters\b/gi, replace: 'strengthens' },
+  { regex: /\bbolstered\b/gi, replace: 'strengthened' },
+  { regex: /\bbolstering\b/gi, replace: 'strengthening' },
+  { regex: /\bnavigate(?:s|d|ing)? (?:the complexities of|the landscape of)\b/gi, replace: 'manage' },
   { regex: /\brealm of\b/gi, replace: 'field of' },
   { regex: /\bbeacon of\b/gi, replace: 'model of' }
 ];
@@ -111,13 +145,19 @@ export function amputateSlop(text) {
     // A) Paired em-dashes acting as parenthetical asides: "word — aside — word" -> "word (aside) word"
     clean = clean.replace(/(\w+)\s*[—]\s*([^—\n]+?)\s*[—]\s*(\w+)/g, '$1 ($2) $3');
     // B) Subordinating clauses after dash: " — which/because/since/where" -> ", which/because/since/where"
-    clean = clean.replace(/\s*[—|--]\s*(which|because|since|meaning|where|when|while|if|as)\b/gi, ', $1');
+    clean = clean.replace(/\s*(?:[—–]|--)\s*(which|because|since|meaning|where|when|while|if|as)\b/gi, ', $1');
     // C) Other internal clause connections: replace with semicolon or period to avoid comma splices
-    clean = clean.replace(/\s*[—|--]\s*/g, '; ');
+    clean = clean.replace(/\s*(?:[—–]|--)\s*/g, '; ');
     // D) If semicolon was placed directly before a coordinating conjunction: "; and" -> ", and"
     clean = clean.replace(/;\s*(and|but|or|so|yet)\b/gi, ', $1');
 
-    // 4. Clean up punctuation debris & grammar artifacts
+    // 4. Untangle compulsive AI Tricolons (Rule of 3 triads) into natural pairs
+    clean = untangleTricolons(clean);
+
+    // 5. Prune moralizing inspirational conclusion formulas
+    clean = pruneMoralizingClosers(clean);
+
+    // 6. Clean up punctuation debris & grammar artifacts
     clean = clean
       .replace(/(^[a-z]|(?<=[.!?]\s+)[a-z])/g, m => m.toUpperCase())
       .replace(/(?<=[.!?]\s+)[,;:]\s*/g, '')
@@ -134,6 +174,79 @@ export function amputateSlop(text) {
   });
 
   return processed.join('\n');
+}
+
+/**
+ * Untangles compulsive synthetic tricolons (rule-of-three adjective/adverb triads
+ * and parallel fluff gerund clauses) into punchy, natural human constructions.
+ * @param {string} text
+ * @returns {string}
+ */
+export function untangleTricolons(text) {
+  if (!text || typeof text !== 'string') return '';
+
+  let out = text;
+
+  // A) Adverb triads: "X-ly, Y-ly, and Z-ly" -> "X-ly and Z-ly"
+  out = out.replace(/\b([a-zA-Z]+ly)\s*,\s*([a-zA-Z]+ly)\s*,?\s+and\s+([a-zA-Z]+ly)\b/gi, (m, adv1, adv2, adv3) => {
+    return `${adv1} and ${adv3}`;
+  });
+
+  // B) Evaluative AI Adjective Triads: "A, B, and C [noun]"
+  const evaluativeAdjList = new Set([
+    'scalable', 'robust', 'resilient', 'intuitive', 'comprehensive', 'flexible', 'seamless',
+    'dynamic', 'innovative', 'transformative', 'vital', 'crucial', 'nuanced', 'streamlined',
+    'cohesive', 'actionable', 'iterative', 'tailored', 'agile', 'efficient', 'effective',
+    'reliable', 'modern', 'powerful', 'clear', 'concise', 'compelling', 'diverse', 'versatile',
+    'sustainable', 'holistic', 'interconnected', 'multifaceted', 'proactive', 'strategic'
+  ]);
+
+  const adjSuffixRegex = /(?:ive|able|ible|al|ic|ous|ful|less|ent|ant|ary|ory|ed|ing)$/i;
+
+  out = out.replace(/\b([a-zA-Z]{3,20})\s*,\s*([a-zA-Z]{3,20})\s*,?\s+and\s+([a-zA-Z]{3,20})\s+([a-zA-Z]{3,25})\b/g, (match, w1, w2, w3, noun) => {
+    const l1 = w1.toLowerCase();
+    const l2 = w2.toLowerCase();
+    const l3 = w3.toLowerCase();
+
+    const isAdj1 = evaluativeAdjList.has(l1) || adjSuffixRegex.test(l1);
+    const isAdj2 = evaluativeAdjList.has(l2) || adjSuffixRegex.test(l2);
+    const isAdj3 = evaluativeAdjList.has(l3) || adjSuffixRegex.test(l3);
+
+    // If all three or at least two are evaluative adjectives qualifying the noun, reduce to a punchy pair
+    if ((isAdj1 && isAdj2 && isAdj3) || (evaluativeAdjList.has(l1) || evaluativeAdjList.has(l2) || evaluativeAdjList.has(l3))) {
+      return `${w1} and ${w3} ${noun}`;
+    }
+    return match;
+  });
+
+  // C) Parallel gerund triads: "streamlining workflows, reducing errors, and enhancing productivity"
+  const aiGerundsList = new Set(['fostering', 'enhancing', 'driving', 'streamlining', 'empowering', 'navigating', 'leveraging', 'optimizing', 'bolstering', 'maximizing', 'ensuring', 'delivering', 'paving', 'reducing', 'improving', 'building', 'creating', 'transforming']);
+  out = out.replace(/\b([a-zA-Z]+ing\s+[^,;\n]{3,35}),\s*([a-zA-Z]+ing\s+[^,;\n]{3,35}),?\s*and\s*([a-zA-Z]+ing\s+[^.;\n]{3,35})\b/gi, (match, c1, c2, c3) => {
+    const v1 = c1.split(/\s+/)[0].toLowerCase();
+    const v2 = c2.split(/\s+/)[0].toLowerCase();
+    const v3 = c3.split(/\s+/)[0].toLowerCase();
+    if (aiGerundsList.has(v1) || aiGerundsList.has(v2) || aiGerundsList.has(v3)) {
+      return `${c1} and ${c2}`;
+    }
+    return match;
+  });
+
+  return out;
+}
+
+/**
+ * Prunes boilerplate synthetic moralizing conclusion clauses at paragraph ends.
+ * (e.g., "Ultimately, embracing X paves the way for a more resilient future.")
+ * @param {string} text
+ * @returns {string}
+ */
+export function pruneMoralizingClosers(text) {
+  if (!text || typeof text !== 'string') return '';
+
+  return text.replace(
+    /(?:^|\s)(?:Ultimately|In conclusion|Looking ahead|At the end of the day),?\s*[^.\n]*?(?:paves the way for|ushers in a new era|stands as a testament to|ensures a brighter|lays the groundwork for)[^.\n]*[.!?]/gi,
+    ''
+  );
 }
 
 /**

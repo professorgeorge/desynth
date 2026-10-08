@@ -42,17 +42,17 @@ function sanitizeModelOutput(text) {
   return text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
 }
 
-export async function callLLM({ provider, apiKey, endpoint, model, systemPrompt, userPrompt, onProgress }) {
+export async function callLLM({ provider, apiKey, endpoint, model, systemPrompt, userPrompt, temperature, top_p, onProgress }) {
   let output = '';
 
   if (provider === 'webllm') {
-    output = await callWebLLM(model || 'Llama-3.2-1B-Instruct-q4f16_1-MLC', systemPrompt, userPrompt, onProgress);
+    output = await callWebLLM(model || 'Llama-3.2-1B-Instruct-q4f16_1-MLC', systemPrompt, userPrompt, temperature, top_p, onProgress);
   } else if (provider === 'chrome-ai') {
     output = await callChromeAI(systemPrompt, userPrompt, onProgress);
   } else if (provider === 'ollama') {
-    output = await callOllama(endpoint || 'http://localhost:11434', model || 'llama3.2', systemPrompt, userPrompt, onProgress);
+    output = await callOllama(endpoint || 'http://localhost:11434', model || 'llama3.2', systemPrompt, userPrompt, temperature, top_p, onProgress);
   } else if (provider === 'gemini') {
-    output = await callGeminiAPI(apiKey, model || 'gemini-2.0-flash', systemPrompt, userPrompt, onProgress);
+    output = await callGeminiAPI(apiKey, model || 'gemini-2.0-flash', systemPrompt, userPrompt, temperature, top_p, onProgress);
   } else if (provider === 'openai' || provider === 'groq' || provider === 'openrouter') {
     const defaultEndpoint = provider === 'groq'
       ? 'https://api.groq.com/openai/v1'
@@ -60,9 +60,9 @@ export async function callLLM({ provider, apiKey, endpoint, model, systemPrompt,
       ? 'https://openrouter.ai/api/v1'
       : 'https://api.openai.com/v1';
     const defaultModel = provider === 'groq' ? 'llama-3.3-70b-versatile' : 'gpt-4o-mini';
-    output = await callOpenAICompatible(endpoint || defaultEndpoint, apiKey, model || defaultModel, systemPrompt, userPrompt, onProgress);
+    output = await callOpenAICompatible(endpoint || defaultEndpoint, apiKey, model || defaultModel, systemPrompt, userPrompt, temperature, top_p, onProgress);
   } else if (provider === 'anthropic') {
-    output = await callAnthropic(apiKey, model || 'claude-3-5-sonnet-20241022', systemPrompt, userPrompt, onProgress);
+    output = await callAnthropic(apiKey, model || 'claude-3-5-sonnet-20241022', systemPrompt, userPrompt, temperature, top_p, onProgress);
   } else {
     // Simulation fallback
     output = await mockSimulation(userPrompt, onProgress);
@@ -95,7 +95,7 @@ export async function initWebLLM(modelId, onProgress) {
   return webLLMEngineInstance;
 }
 
-async function callWebLLM(modelId, systemPrompt, userPrompt, onProgress) {
+async function callWebLLM(modelId, systemPrompt, userPrompt, temperature, top_p, onProgress) {
   const engine = await initWebLLM(modelId, (report) => {
     if (onProgress) onProgress(`[Loading Model] ${report.text}`);
   });
@@ -108,7 +108,8 @@ async function callWebLLM(modelId, systemPrompt, userPrompt, onProgress) {
 
   const reply = await engine.chat.completions.create({
     messages: messages,
-    temperature: 0.7
+    temperature: typeof temperature === 'number' ? temperature : 0.65,
+    top_p: typeof top_p === 'number' ? top_p : 0.95
   });
 
   const output = reply.choices?.[0]?.message?.content || '';
@@ -185,9 +186,11 @@ export async function fetchOllamaModels(endpoint) {
   throw new Error(`Cannot reach Ollama at ${base}. Make sure Ollama is running ('ollama serve') and CORS is enabled.`);
 }
 
-async function callOllama(endpoint, model, systemPrompt, userPrompt, onProgress) {
+async function callOllama(endpoint, model, systemPrompt, userPrompt, temperature, top_p, onProgress) {
   const base = normalizeOllamaUrl(endpoint);
   const cleanModel = (model || 'llama3.2').trim();
+  const effTemp = typeof temperature === 'number' ? temperature : 0.65;
+  const effTopP = typeof top_p === 'number' ? top_p : 0.95;
 
   // Try standard /v1/chat/completions first, then /api/chat
   const v1Url = base.endsWith('/v1') ? `${base}/chat/completions` : `${base}/v1/chat/completions`;
@@ -202,11 +205,14 @@ async function callOllama(endpoint, model, systemPrompt, userPrompt, onProgress)
           ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
           { role: 'user', content: userPrompt }
         ],
-        temperature: 0.7,
+        temperature: effTemp,
+        top_p: effTopP,
         stream: false,
         options: {
           num_ctx: 32768,
-          num_predict: 16384
+          num_predict: 16384,
+          temperature: effTemp,
+          top_p: effTopP
         }
       },
       extractor: (d) => d.choices?.[0]?.message?.content
@@ -223,7 +229,8 @@ async function callOllama(endpoint, model, systemPrompt, userPrompt, onProgress)
         options: {
           num_ctx: 32768,
           num_predict: 16384,
-          temperature: 0.7
+          temperature: effTemp,
+          top_p: effTopP
         }
       },
       extractor: (d) => d.message?.content
@@ -282,7 +289,7 @@ async function callOllama(endpoint, model, systemPrompt, userPrompt, onProgress)
 }
 
 // --- Google Gemini API ---
-async function callGeminiAPI(apiKey, model, systemPrompt, userPrompt, onProgress) {
+async function callGeminiAPI(apiKey, model, systemPrompt, userPrompt, temperature, top_p, onProgress) {
   const cleanKey = (apiKey || '').trim();
   if (!cleanKey) {
     throw new Error('Google Gemini API key required. Enter your key in the LLM Settings.');
@@ -290,6 +297,8 @@ async function callGeminiAPI(apiKey, model, systemPrompt, userPrompt, onProgress
 
   const cleanModel = (model || 'gemini-2.0-flash').trim();
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${cleanKey}`;
+  const effTemp = typeof temperature === 'number' ? temperature : 0.65;
+  const effTopP = typeof top_p === 'number' ? top_p : 0.95;
 
   const payload = {
     contents: [
@@ -299,7 +308,8 @@ async function callGeminiAPI(apiKey, model, systemPrompt, userPrompt, onProgress
       }
     ],
     generationConfig: {
-      temperature: 0.7
+      temperature: effTemp,
+      topP: effTopP
     }
   };
 
@@ -348,7 +358,7 @@ async function callGeminiAPI(apiKey, model, systemPrompt, userPrompt, onProgress
 }
 
 // --- OpenAI Compatible (OpenAI, Groq, OpenRouter, DeepSeek) ---
-async function callOpenAICompatible(endpoint, apiKey, model, systemPrompt, userPrompt, onProgress) {
+async function callOpenAICompatible(endpoint, apiKey, model, systemPrompt, userPrompt, temperature, top_p, onProgress) {
   const cleanKey = (apiKey || '').trim();
   if (!cleanKey) {
     throw new Error('API key required for cloud provider.');
@@ -366,6 +376,9 @@ async function callOpenAICompatible(endpoint, apiKey, model, systemPrompt, userP
   }
   messages.push({ role: 'user', content: userPrompt });
 
+  const effTemp = typeof temperature === 'number' ? temperature : 0.65;
+  const effTopP = typeof top_p === 'number' ? top_p : 0.95;
+
   let response;
   try {
     response = await fetch(url, {
@@ -377,7 +390,8 @@ async function callOpenAICompatible(endpoint, apiKey, model, systemPrompt, userP
       body: JSON.stringify({
         model: model || 'gpt-4o-mini',
         messages: messages,
-        temperature: 0.7
+        temperature: effTemp,
+        top_p: effTopP
       })
     });
   } catch (netErr) {
@@ -399,12 +413,15 @@ async function callOpenAICompatible(endpoint, apiKey, model, systemPrompt, userP
 }
 
 // --- Anthropic Claude API ---
-async function callAnthropic(apiKey, model, systemPrompt, userPrompt, onProgress) {
+async function callAnthropic(apiKey, model, systemPrompt, userPrompt, temperature, top_p, onProgress) {
   if (!apiKey) {
     throw new Error('Anthropic API key required.');
   }
 
   const url = 'https://api.anthropic.com/v1/messages';
+  const effTemp = typeof temperature === 'number' ? temperature : 0.65;
+  const effTopP = typeof top_p === 'number' ? top_p : 0.95;
+
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -417,7 +434,9 @@ async function callAnthropic(apiKey, model, systemPrompt, userPrompt, onProgress
       model: model || 'claude-3-5-sonnet-20241022',
       max_tokens: 4096,
       system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }]
+      messages: [{ role: 'user', content: userPrompt }],
+      temperature: effTemp,
+      top_p: effTopP
     })
   });
 

@@ -232,6 +232,8 @@ RULES:
         ...engineConfig,
         systemPrompt: p1System,
         userPrompt: `Extract the atomic claim graph from this text:\n\n${input}`,
+        temperature: 0.2,
+        top_p: 0.9,
         onProgress: (p) => {
           const statusLabel = typeof p === 'string' && p.startsWith('[Loading') ? p : 'Extracting atomic micro-claims';
           onStepUpdate({ step: 1, name: `Pass 1: ${statusLabel}`, status: 'running' });
@@ -310,9 +312,19 @@ RULES:
 7. ZERO EM-DASHES (—): Use natural colons, semicolons, parentheses, or separate sentences instead of em-dashes.
 8. REMOVE SYNTHETIC TASTE ONLY: Cut throat-clearing openings, binary contrast formulas, corporate buzzwords ("tapestry", "delve", "realm", "beacon", "foster"), and em-dashes. Break monotonous robotic sentence cadence with authentic human variation.`;
 
+      // Cross-chunk continuity & co-reference state tracker
+      let lastSanitizedTail = '';
+      const establishedEntities = new Set();
+
       for (let i = 0; i < chunks.length; i++) {
         const chunk = chunks[i];
         const progressPct = Math.round(((i) / chunks.length) * 100);
+
+        // Dynamic Temperature & Top-P Jittering:
+        // Sinusoidal variation between ~0.50 and ~0.66 introduces authentic human cognitive drift
+        // that defeats static token perplexity and burstiness classifiers.
+        const jitteredTemp = Number((0.58 + (Math.sin(i * 1.5 + 0.4) * 0.08)).toFixed(2));
+        const jitteredTopP = Number((0.93 + (Math.cos(i * 1.5 + 0.4) * 0.03)).toFixed(2));
 
         onStepUpdate({
           step: 3,
@@ -342,7 +354,16 @@ ${result.personaCardYaml}
 AUTHENTIC CADENCE SKELETONS TO EMULATE:
 ${framesText}\n\n`;
 
-        if (chunk.precedingContext) {
+        if (i > 0 && lastSanitizedTail) {
+          p3ChunkUser += `CROSS-SECTION CONTINUITY & CO-REFERENCE MEMORY (Section ${chunk.index} of ${chunk.total}):
+- This is an ONGOING section within a larger manuscript. Do NOT write an introductory overview, abstract, or summary.
+- Do NOT redefine previously introduced acronyms or concepts. Continue the exact existing register and voice seamlessly.
+- Preceding section concluded with: "${lastSanitizedTail}"\n`;
+          if (establishedEntities.size > 0) {
+            p3ChunkUser += `- Key established entities in active use: ${Array.from(establishedEntities).slice(0, 10).join(', ')}\n`;
+          }
+          p3ChunkUser += `\n`;
+        } else if (chunk.precedingContext) {
           p3ChunkUser += `PRECEDING THOUGHT CONTEXT (Maintain seamless tone & flow):
 "${chunk.precedingContext}"\n\n`;
         }
@@ -354,6 +375,8 @@ ${chunk.text}`;
           ...engineConfig,
           systemPrompt: p3ChunkSystem,
           userPrompt: p3ChunkUser,
+          temperature: jitteredTemp,
+          top_p: jitteredTopP,
           onProgress: (p) => {
             const statusLabel = typeof p === 'string' && p.startsWith('[Loading') ? p : `Polishing Section ${chunk.index}/${chunk.total} ("${chunk.title}")`;
             onStepUpdate({ step: 3, name: `Pass 3: ${statusLabel}`, status: 'running' });
@@ -362,7 +385,20 @@ ${chunk.text}`;
 
         // Run surgical amputation on each chunk
         const cleanedChunk = amputateSlop(chunkOutput || chunk.text);
-        sanitizedParts.push(cleanedChunk.trim());
+        const trimmedChunk = cleanedChunk.trim();
+        sanitizedParts.push(trimmedChunk);
+
+        // Update cross-chunk memory state for subsequent sections
+        const chunkSentences = trimmedChunk.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0);
+        if (chunkSentences.length > 0) {
+          lastSanitizedTail = chunkSentences.slice(-2).join(' ').slice(-240).trim();
+        }
+        const entitiesFound = trimmedChunk.match(/\b[A-Z]{2,6}\b/g) || [];
+        for (const e of entitiesFound) {
+          if (!['THE', 'AND', 'FOR', 'NOT', 'BUT', 'ALL', 'OUT'].includes(e)) {
+            establishedEntities.add(e);
+          }
+        }
       }
 
       draft = sanitizedParts.join('\n\n');
@@ -417,6 +453,8 @@ ${input}`;
         ...engineConfig,
         systemPrompt: p3System,
         userPrompt: p3User,
+        temperature: 0.62,
+        top_p: 0.93,
         onProgress: (p) => {
           const statusLabel = typeof p === 'string' && p.startsWith('[Loading') ? p : 'De-synthesizing text with 100% layout fidelity';
           onStepUpdate({ step: 3, name: `Pass 3: ${statusLabel}`, status: 'running' });
@@ -487,6 +525,8 @@ Write the compressed human version now (Target: ~${targetWords} words):`;
         ...engineConfig,
         systemPrompt: p3System,
         userPrompt: p3User,
+        temperature: 0.55,
+        top_p: 0.90,
         onProgress: (p) => {
           const statusLabel = typeof p === 'string' && p.startsWith('[Loading') ? p : `Compressing substance into ~${targetWords} words`;
           onStepUpdate({ step: 3, name: `Pass 3: ${statusLabel}`, status: 'running' });
