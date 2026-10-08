@@ -2,22 +2,88 @@ import { ARCHETYPES, formatPersonaYaml } from './engine/personas.js';
 import { PRESETS } from './engine/presets.js';
 import { lintProse } from './engine/linter.js';
 import { runCognitivePipeline } from './engine/pipeline.js';
-import { detectChromeAI } from './engine/llm-connector.js';
+import {
+  detectChromeAI,
+  isWebGPUSupported,
+  fetchOllamaModels,
+  testProviderConnection,
+  initWebLLM
+} from './engine/llm-connector.js';
+
+// --- Multi-Provider Settings Storage Keys ---
+const STORAGE_KEYS = {
+  provider: 'stop_slop_provider',
+  webllmModel: 'stop_slop_webllm_model',
+  ollamaEndpoint: 'stop_slop_ollama_endpoint',
+  ollamaModel: 'stop_slop_ollama_model',
+  geminiKey: 'stop_slop_gemini_key',
+  geminiModel: 'stop_slop_gemini_model',
+  openaiEndpoint: 'stop_slop_openai_endpoint',
+  openaiKey: 'stop_slop_openai_key',
+  openaiModel: 'stop_slop_openai_model'
+};
+
+// Cloud provider presets
+const CLOUD_PRESETS = {
+  groq: {
+    endpoint: 'https://api.groq.com/openai/v1',
+    model: 'llama-3.3-70b-versatile'
+  },
+  openai: {
+    endpoint: 'https://api.openai.com/v1',
+    model: 'gpt-4o-mini'
+  },
+  openrouter: {
+    endpoint: 'https://openrouter.ai/api/v1',
+    model: 'meta-llama/llama-3.3-70b-instruct'
+  },
+  deepseek: {
+    endpoint: 'https://api.deepseek.com/v1',
+    model: 'deepseek-chat'
+  }
+};
 
 // --- State Management ---
 const state = {
   activePersona: ARCHETYPES[0],
   customPersona: null,
   activeTab: 'rewrite',
-  engineConfig: {
-    provider: localStorage.getItem('stop_slop_provider') || 'demo',
-    apiKey: localStorage.getItem('stop_slop_api_key') || '',
-    endpoint: localStorage.getItem('stop_slop_endpoint') || '',
-    model: localStorage.getItem('stop_slop_model') || ''
+  activeProvider: localStorage.getItem(STORAGE_KEYS.provider) || 'demo',
+  providerConfigs: {
+    demo: {},
+    webllm: {
+      model: localStorage.getItem(STORAGE_KEYS.webllmModel) || 'Llama-3.2-1B-Instruct-q4f16_1-MLC'
+    },
+    ollama: {
+      endpoint: localStorage.getItem(STORAGE_KEYS.ollamaEndpoint) || 'http://localhost:11434',
+      model: localStorage.getItem(STORAGE_KEYS.ollamaModel) || 'llama3.2'
+    },
+    gemini: {
+      apiKey: localStorage.getItem(STORAGE_KEYS.geminiKey) || localStorage.getItem('stop_slop_api_key') || '',
+      model: localStorage.getItem(STORAGE_KEYS.geminiModel) || 'gemini-2.0-flash'
+    },
+    'chrome-ai': {},
+    openai: {
+      endpoint: localStorage.getItem(STORAGE_KEYS.openaiEndpoint) || 'https://api.groq.com/openai/v1',
+      apiKey: localStorage.getItem(STORAGE_KEYS.openaiKey) || '',
+      model: localStorage.getItem(STORAGE_KEYS.openaiModel) || 'llama-3.3-70b-versatile'
+    }
   },
   lastResult: null,
   deferredInstallPrompt: null
 };
+
+// Helper: Get active engine parameters for pipeline execution
+function getActiveEngineConfig() {
+  const p = state.activeProvider;
+  const cfg = state.providerConfigs[p] || {};
+  return {
+    provider: p,
+    apiKey: cfg.apiKey || '',
+    endpoint: cfg.endpoint || '',
+    model: cfg.model || ''
+  };
+}
 
 // --- DOM References ---
 const sourceTextEl = document.getElementById('source-text');
@@ -70,12 +136,38 @@ const engineStatusDot = document.getElementById('engine-status-dot');
 const engineTabs = document.querySelectorAll('.engine-tab');
 const providerPanes = {
   demo: document.getElementById('pane-demo'),
-  'chrome-ai': document.getElementById('pane-chrome-ai'),
+  webllm: document.getElementById('pane-webllm'),
   ollama: document.getElementById('pane-ollama'),
   gemini: document.getElementById('pane-gemini'),
+  'chrome-ai': document.getElementById('pane-chrome-ai'),
   openai: document.getElementById('pane-openai')
 };
 const saveEngineBtn = document.getElementById('save-engine-btn');
+
+// Modal Input Elements
+const webllmModelSelect = document.getElementById('webllm-model');
+const testWebllmBtn = document.getElementById('test-webllm-btn');
+const webllmProgressContainer = document.getElementById('webllm-progress-container');
+const webllmProgressBar = document.getElementById('webllm-progress-bar');
+const webllmProgressText = document.getElementById('webllm-progress-text');
+
+const ollamaEndpointInput = document.getElementById('ollama-endpoint');
+const ollamaModelInput = document.getElementById('ollama-model');
+const ollamaModelSelect = document.getElementById('ollama-model-select');
+const fetchOllamaModelsBtn = document.getElementById('fetch-ollama-models-btn');
+const testOllamaBtn = document.getElementById('test-ollama-btn');
+
+const geminiKeyInput = document.getElementById('gemini-key');
+const geminiModelSelect = document.getElementById('gemini-model');
+const testGeminiBtn = document.getElementById('test-gemini-btn');
+
+const testChromeAiBtn = document.getElementById('test-chrome-ai-btn');
+
+const cloudPresetSelect = document.getElementById('cloud-preset-select');
+const openaiEndpointInput = document.getElementById('openai-endpoint');
+const openaiKeyInput = document.getElementById('openai-key');
+const openaiModelInput = document.getElementById('openai-model');
+const testOpenaiBtn = document.getElementById('test-openai-btn');
 
 // Persona Modal
 const personaModal = document.getElementById('persona-modal');
@@ -165,25 +257,84 @@ function updateInputWordCount() {
   inputStatsBadge.textContent = `${words} ${words === 1 ? 'word' : 'words'}`;
 }
 
-// --- Engine Settings ---
+// --- Engine Settings UI Sync ---
 function updateEngineUI() {
-  const p = state.engineConfig.provider;
+  const p = state.activeProvider;
   if (p === 'demo') {
     currentEngineLabel.textContent = 'Demo Simulation';
     engineStatusDot.style.background = '#10B981';
+  } else if (p === 'webllm') {
+    const model = state.providerConfigs.webllm.model || 'Llama 3.2 1B';
+    const shortName = model.split('-')[0] + ' ' + (model.split('-')[1] || '');
+    currentEngineLabel.textContent = `WebLLM (${shortName})`;
+    engineStatusDot.style.background = '#06B6D4';
   } else if (p === 'chrome-ai') {
-    currentEngineLabel.textContent = 'Chrome AI (Gemini Nano)';
+    currentEngineLabel.textContent = 'Chrome Nano';
     engineStatusDot.style.background = '#38BDF8';
   } else if (p === 'ollama') {
-    currentEngineLabel.textContent = `Ollama (${state.engineConfig.model || 'local'})`;
+    currentEngineLabel.textContent = `Ollama (${state.providerConfigs.ollama.model || 'local'})`;
     engineStatusDot.style.background = '#818CF8';
   } else if (p === 'gemini') {
-    currentEngineLabel.textContent = 'Google Gemini 2.0';
+    const model = state.providerConfigs.gemini.model || 'gemini-2.0-flash';
+    currentEngineLabel.textContent = `Gemini (${model.replace('gemini-', '')})`;
     engineStatusDot.style.background = '#F59E0B';
   } else {
-    currentEngineLabel.textContent = 'OpenAI / Groq';
+    currentEngineLabel.textContent = `Cloud (${state.providerConfigs.openai.model || 'API'})`;
     engineStatusDot.style.background = '#C084FC';
   }
+}
+
+// Populate modal inputs from current state
+function populateModalInputs() {
+  // 1. Activate tab corresponding to active provider
+  engineTabs.forEach(tab => {
+    tab.classList.toggle('active', tab.dataset.provider === state.activeProvider);
+  });
+  Object.keys(providerPanes).forEach(k => {
+    if (providerPanes[k]) {
+      providerPanes[k].classList.toggle('hidden', k !== state.activeProvider);
+    }
+  });
+
+  // 2. Populate inputs
+  if (webllmModelSelect) {
+    webllmModelSelect.value = state.providerConfigs.webllm.model;
+  }
+  if (ollamaEndpointInput) {
+    ollamaEndpointInput.value = state.providerConfigs.ollama.endpoint;
+  }
+  if (ollamaModelInput) {
+    ollamaModelInput.value = state.providerConfigs.ollama.model;
+  }
+  if (geminiKeyInput) {
+    geminiKeyInput.value = state.providerConfigs.gemini.apiKey;
+  }
+  if (geminiModelSelect) {
+    geminiModelSelect.value = state.providerConfigs.gemini.model;
+  }
+  if (openaiEndpointInput) {
+    openaiEndpointInput.value = state.providerConfigs.openai.endpoint;
+  }
+  if (openaiKeyInput) {
+    openaiKeyInput.value = state.providerConfigs.openai.apiKey;
+  }
+  if (openaiModelInput) {
+    openaiModelInput.value = state.providerConfigs.openai.model;
+  }
+
+  // Clear previous feedback
+  document.querySelectorAll('.test-feedback-box').forEach(el => {
+    el.className = 'test-feedback-box hidden';
+    el.textContent = '';
+  });
+}
+
+function showFeedback(providerKey, type, message) {
+  const fb = document.getElementById(`test-feedback-${providerKey}`);
+  if (!fb) return;
+  fb.className = `test-feedback-box ${type}`;
+  fb.textContent = message;
+  fb.classList.remove('hidden');
 }
 
 async function checkChromeAIStatus() {
@@ -199,7 +350,7 @@ async function checkChromeAIStatus() {
   } else {
     dot.className = 'status-indicator-dot disabled';
     title.textContent = 'Prompt API Not Detected';
-    desc.textContent = 'Requires Chrome 127+ with chrome://flags/#prompt-api-for-gemini-nano enabled. You can use Gemini API or Ollama instead!';
+    desc.textContent = 'Requires Chrome 127+ with chrome://flags/#prompt-api-for-gemini-nano enabled. You can use In-Browser WebLLM, Ollama, or Gemini API!';
   }
 }
 
@@ -245,6 +396,20 @@ async function handleRunPipeline() {
     return;
   }
 
+  const engineCfg = getActiveEngineConfig();
+
+  // Basic validation before launch
+  if (engineCfg.provider === 'gemini' && !engineCfg.apiKey) {
+    alert('Google Gemini API Key is missing. Click the Engine badge in the top bar to enter your key.');
+    engineSelectorBtn.click();
+    return;
+  }
+  if ((engineCfg.provider === 'openai' || engineCfg.provider === 'groq') && !engineCfg.apiKey) {
+    alert('API Key is missing for your cloud provider. Click the Engine badge to enter your key.');
+    engineSelectorBtn.click();
+    return;
+  }
+
   runPipelineBtn.disabled = true;
   detectOnlyBtn.disabled = true;
   resetStepper();
@@ -253,7 +418,7 @@ async function handleRunPipeline() {
     <div class="empty-state">
       <div class="engine-pulse-dot" style="width:20px;height:20px;margin-bottom:14px;"></div>
       <h3>Executing 4-Pass Cognitive Engine...</h3>
-      <p id="stepper-live-status">Step 1: Extracting irreducible substance...</p>
+      <p id="stepper-live-status">Step 1: Extracting irreducible substance with ${currentEngineLabel.textContent}...</p>
     </div>
   `;
 
@@ -261,7 +426,7 @@ async function handleRunPipeline() {
     const pipelineResult = await runCognitivePipeline({
       input: text,
       persona: state.activePersona,
-      engineConfig: state.engineConfig,
+      engineConfig: engineCfg,
       onStepUpdate: ({ step, name, status, data }) => {
         updateStepperState(step, status);
         const liveStatus = document.getElementById('stepper-live-status');
@@ -283,13 +448,21 @@ async function handleRunPipeline() {
     renderResults(pipelineResult);
     switchTab('rewrite');
   } catch (err) {
+    console.error('Pipeline error:', err);
     outputProseBox.innerHTML = `
       <div class="empty-state">
         <div style="font-size:2rem;margin-bottom:10px;">⚠️</div>
-        <h3 style="color:var(--accent-rose);">Execution Error</h3>
-        <p style="color:var(--text-secondary);">${err.message || err}</p>
+        <h3 style="color:var(--accent-rose);">Execution Error (${engineCfg.provider})</h3>
+        <p style="color:var(--text-secondary);white-space:pre-wrap;text-align:left;max-width:550px;background:rgba(0,0,0,0.3);padding:14px;border-radius:8px;font-family:var(--font-mono);font-size:0.8rem;">${escapeHtml(err.message || String(err))}</p>
+        <button id="open-settings-from-err-btn" class="btn btn-secondary btn-sm" style="margin-top:16px;">
+          ⚙️ Open LLM Configuration
+        </button>
       </div>
     `;
+    const openBtn = document.getElementById('open-settings-from-err-btn');
+    if (openBtn) {
+      openBtn.addEventListener('click', () => engineSelectorBtn.click());
+    }
   } finally {
     runPipelineBtn.disabled = false;
     detectOnlyBtn.disabled = false;
@@ -419,41 +592,224 @@ function setupEventListeners() {
 
   // Engine Modal Open/Close
   engineSelectorBtn.addEventListener('click', () => {
+    populateModalInputs();
     engineModal.classList.remove('hidden');
     checkChromeAIStatus();
   });
   closeEngineModalBtn.addEventListener('click', () => engineModal.classList.add('hidden'));
 
+  // Switch tabs inside modal
   engineTabs.forEach(tab => {
     tab.addEventListener('click', () => {
       engineTabs.forEach(t => t.classList.toggle('active', t === tab));
       Object.keys(providerPanes).forEach(k => {
-        providerPanes[k].classList.toggle('hidden', k !== tab.dataset.provider);
+        if (providerPanes[k]) {
+          providerPanes[k].classList.toggle('hidden', k !== tab.dataset.provider);
+        }
       });
     });
   });
 
+  // Cloud Preset selector dropdown
+  if (cloudPresetSelect) {
+    cloudPresetSelect.addEventListener('change', (e) => {
+      const p = CLOUD_PRESETS[e.target.value];
+      if (p) {
+        openaiEndpointInput.value = p.endpoint;
+        openaiModelInput.value = p.model;
+      }
+    });
+  }
+
+  // --- Test Connection Handlers ---
+
+  // 1. WebLLM
+  testWebllmBtn.addEventListener('click', async () => {
+    if (!isWebGPUSupported()) {
+      showFeedback('webllm', 'error', '❌ WebGPU is not supported in this browser. Please use Chrome 113+, Edge 113+, or enable WebGPU.');
+      return;
+    }
+    const model = webllmModelSelect.value;
+    testWebllmBtn.disabled = true;
+    webllmProgressContainer.classList.remove('hidden');
+    webllmProgressBar.style.width = '10%';
+    webllmProgressText.textContent = `Downloading / Loading ${model}...`;
+    showFeedback('webllm', 'info', 'Loading model weights. This is cached locally in browser storage after first download...');
+
+    try {
+      const res = await testProviderConnection({
+        provider: 'webllm',
+        model: model,
+        onProgress: (text) => {
+          webllmProgressText.textContent = text;
+          // Approximate progress if available
+          const match = text.match(/(\d+)%/);
+          if (match) {
+            webllmProgressBar.style.width = `${match[1]}%`;
+          }
+        }
+      });
+      webllmProgressBar.style.width = '100%';
+      if (res.success) {
+        showFeedback('webllm', 'success', `✓ ${res.message}`);
+      } else {
+        showFeedback('webllm', 'error', `❌ ${res.message}`);
+      }
+    } catch (err) {
+      showFeedback('webllm', 'error', `❌ Error initializing WebLLM: ${err.message}`);
+    } finally {
+      testWebllmBtn.disabled = false;
+    }
+  });
+
+  // 2. Ollama Fetch Models
+  fetchOllamaModelsBtn.addEventListener('click', async () => {
+    const endpoint = ollamaEndpointInput.value.trim() || 'http://localhost:11434';
+    fetchOllamaModelsBtn.disabled = true;
+    showFeedback('ollama', 'info', `Scanning Ollama at ${endpoint}...`);
+
+    try {
+      const models = await fetchOllamaModels(endpoint);
+      if (models.length > 0) {
+        ollamaModelSelect.innerHTML = models.map(m => `<option value="${m}">${m}</option>`).join('');
+        ollamaModelSelect.classList.remove('hidden');
+        ollamaModelInput.value = models[0];
+        ollamaModelSelect.addEventListener('change', () => {
+          ollamaModelInput.value = ollamaModelSelect.value;
+        });
+        showFeedback('ollama', 'success', `✓ Found ${models.length} installed model(s): ${models.join(', ')}`);
+      } else {
+        showFeedback('ollama', 'info', 'Connected to Ollama, but no models found. Run "ollama pull llama3.2".');
+      }
+    } catch (err) {
+      showFeedback('ollama', 'error', `❌ ${err.message}`);
+    } finally {
+      fetchOllamaModelsBtn.disabled = false;
+    }
+  });
+
+  // 3. Ollama Test Connection
+  testOllamaBtn.addEventListener('click', async () => {
+    const endpoint = ollamaEndpointInput.value.trim() || 'http://localhost:11434';
+    const model = ollamaModelInput.value.trim() || 'llama3.2';
+    testOllamaBtn.disabled = true;
+    showFeedback('ollama', 'info', `Testing connection to Ollama with model "${model}"...`);
+
+    try {
+      const res = await testProviderConnection({
+        provider: 'ollama',
+        endpoint: endpoint,
+        model: model
+      });
+      if (res.success) {
+        showFeedback('ollama', 'success', `✓ ${res.message}`);
+      } else {
+        showFeedback('ollama', 'error', `❌ ${res.message}`);
+      }
+    } catch (err) {
+      showFeedback('ollama', 'error', `❌ ${err.message}`);
+    } finally {
+      testOllamaBtn.disabled = false;
+    }
+  });
+
+  // 4. Gemini Test
+  testGeminiBtn.addEventListener('click', async () => {
+    const key = geminiKeyInput.value.trim();
+    const model = geminiModelSelect.value;
+    if (!key) {
+      showFeedback('gemini', 'error', '❌ Please enter your Gemini API Key first.');
+      return;
+    }
+    testGeminiBtn.disabled = true;
+    showFeedback('gemini', 'info', `Testing Gemini API with ${model}...`);
+
+    try {
+      const res = await testProviderConnection({
+        provider: 'gemini',
+        apiKey: key,
+        model: model
+      });
+      if (res.success) {
+        showFeedback('gemini', 'success', `✓ ${res.message}`);
+      } else {
+        showFeedback('gemini', 'error', `❌ ${res.message}`);
+      }
+    } catch (err) {
+      showFeedback('gemini', 'error', `❌ ${err.message}`);
+    } finally {
+      testGeminiBtn.disabled = false;
+    }
+  });
+
+  // 5. Chrome AI Test
+  testChromeAiBtn.addEventListener('click', checkChromeAIStatus);
+
+  // 6. Cloud API (OpenAI/Groq) Test
+  testOpenaiBtn.addEventListener('click', async () => {
+    const endpoint = openaiEndpointInput.value.trim();
+    const key = openaiKeyInput.value.trim();
+    const model = openaiModelInput.value.trim();
+    if (!key) {
+      showFeedback('openai', 'error', '❌ Please enter an API key.');
+      return;
+    }
+    testOpenaiBtn.disabled = true;
+    showFeedback('openai', 'info', `Testing connection to ${endpoint}...`);
+
+    try {
+      const res = await testProviderConnection({
+        provider: 'openai',
+        endpoint: endpoint,
+        apiKey: key,
+        model: model
+      });
+      if (res.success) {
+        showFeedback('openai', 'success', `✓ ${res.message}`);
+      } else {
+        showFeedback('openai', 'error', `❌ ${res.message}`);
+      }
+    } catch (err) {
+      showFeedback('openai', 'error', `❌ ${err.message}`);
+    } finally {
+      testOpenaiBtn.disabled = false;
+    }
+  });
+
+  // --- Save Engine Settings ---
   saveEngineBtn.addEventListener('click', () => {
     const activeTab = document.querySelector('.engine-tab.active');
-    const provider = activeTab ? activeTab.dataset.provider : 'demo';
+    const selectedProvider = activeTab ? activeTab.dataset.provider : 'demo';
 
-    state.engineConfig.provider = provider;
-    if (provider === 'gemini') {
-      state.engineConfig.apiKey = document.getElementById('gemini-key').value.trim();
-      state.engineConfig.model = document.getElementById('gemini-model').value;
-    } else if (provider === 'ollama') {
-      state.engineConfig.endpoint = document.getElementById('ollama-endpoint').value.trim();
-      state.engineConfig.model = document.getElementById('ollama-model').value.trim();
-    } else if (provider === 'openai') {
-      state.engineConfig.endpoint = document.getElementById('openai-endpoint').value.trim();
-      state.engineConfig.apiKey = document.getElementById('openai-key').value.trim();
-      state.engineConfig.model = document.getElementById('openai-model').value.trim();
+    state.activeProvider = selectedProvider;
+
+    // Persist all fields so user inputs are never lost when switching
+    if (webllmModelSelect) {
+      state.providerConfigs.webllm.model = webllmModelSelect.value;
+      localStorage.setItem(STORAGE_KEYS.webllmModel, webllmModelSelect.value);
+    }
+    if (ollamaEndpointInput && ollamaModelInput) {
+      state.providerConfigs.ollama.endpoint = ollamaEndpointInput.value.trim() || 'http://localhost:11434';
+      state.providerConfigs.ollama.model = ollamaModelInput.value.trim() || 'llama3.2';
+      localStorage.setItem(STORAGE_KEYS.ollamaEndpoint, state.providerConfigs.ollama.endpoint);
+      localStorage.setItem(STORAGE_KEYS.ollamaModel, state.providerConfigs.ollama.model);
+    }
+    if (geminiKeyInput && geminiModelSelect) {
+      state.providerConfigs.gemini.apiKey = geminiKeyInput.value.trim();
+      state.providerConfigs.gemini.model = geminiModelSelect.value;
+      localStorage.setItem(STORAGE_KEYS.geminiKey, state.providerConfigs.gemini.apiKey);
+      localStorage.setItem(STORAGE_KEYS.geminiModel, state.providerConfigs.gemini.model);
+    }
+    if (openaiEndpointInput && openaiKeyInput && openaiModelInput) {
+      state.providerConfigs.openai.endpoint = openaiEndpointInput.value.trim();
+      state.providerConfigs.openai.apiKey = openaiKeyInput.value.trim();
+      state.providerConfigs.openai.model = openaiModelInput.value.trim();
+      localStorage.setItem(STORAGE_KEYS.openaiEndpoint, state.providerConfigs.openai.endpoint);
+      localStorage.setItem(STORAGE_KEYS.openaiKey, state.providerConfigs.openai.apiKey);
+      localStorage.setItem(STORAGE_KEYS.openaiModel, state.providerConfigs.openai.model);
     }
 
-    localStorage.setItem('stop_slop_provider', provider);
-    localStorage.setItem('stop_slop_api_key', state.engineConfig.apiKey);
-    localStorage.setItem('stop_slop_endpoint', state.engineConfig.endpoint);
-    localStorage.setItem('stop_slop_model', state.engineConfig.model);
+    localStorage.setItem(STORAGE_KEYS.provider, selectedProvider);
 
     updateEngineUI();
     engineModal.classList.add('hidden');
@@ -472,7 +828,6 @@ function setupEventListeners() {
       return;
     }
 
-    // Heuristically construct Custom Author Card
     const words = sample.split(/\s+/).length;
     const isTechnical = /code|data|system|query|api|server|function|service/i.test(sample);
     

@@ -11,6 +11,13 @@ export default defineConfig({
     port: 5173,
     open: false,
     cors: true,
+    proxy: {
+      '/ollama-proxy': {
+        target: 'http://localhost:11434',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/ollama-proxy/, ''),
+      }
+    }
   },
   preview: {
     host: '0.0.0.0',

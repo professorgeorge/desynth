@@ -45,11 +45,15 @@ Do not write an introduction. Just output the stripped substance in 2-4 sentence
     substance = await callLLM({
       ...engineConfig,
       systemPrompt: p1System,
-      userPrompt: `Extract the stripped substance from this text:\n\n${input}`
+      userPrompt: `Extract the stripped substance from this text:\n\n${input}`,
+      onProgress: (p) => {
+        const statusLabel = typeof p === 'string' && p.startsWith('[Loading') ? p : 'Extracting factual substance';
+        onStepUpdate({ step: 1, name: `Pass 1: ${statusLabel}`, status: 'running' });
+      }
     });
   }
 
-  result.substance = substance.trim();
+  result.substance = (substance || '').trim();
   onStepUpdate({ step: 1, name: 'Pass 1: Substance Extraction', status: 'completed', data: result.substance });
 
   // --- PASS 2: AUTHOR PERSONA MODELING ---
@@ -88,11 +92,15 @@ CRITICAL GUARDRAILS:
     draft = await callLLM({
       ...engineConfig,
       systemPrompt: p3System,
-      userPrompt: `Write the complete version based on the substance and author model.`
+      userPrompt: `Write the complete version based on the substance and author model.`,
+      onProgress: (p) => {
+        const statusLabel = typeof p === 'string' && p.startsWith('[Loading') ? p : 'Rendering author-grounded draft';
+        onStepUpdate({ step: 3, name: `Pass 3: ${statusLabel}`, status: 'running' });
+      }
     });
   }
 
-  result.draft = draft.trim();
+  result.draft = (draft || '').trim();
   onStepUpdate({ step: 3, name: 'Pass 3: Natural Generative Draft', status: 'completed', data: result.draft });
 
   // --- PASS 4: VOICE-CONSISTENCY & LINTER AUDIT ---
