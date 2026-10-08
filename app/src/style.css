@@ -82,6 +82,20 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  border-radius: var(--radius-md);
+}
+
+.brand-logo-container:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+.brand-logo-container:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 4px;
 }
 
 .brand-logo {

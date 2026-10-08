@@ -158,6 +158,11 @@ const stagePanels = [1, 2, 3].map(n => document.getElementById(`stage-panel-${n}
 const activeVoicePill = document.getElementById('active-voice-pill');
 const draftStatusPill = document.getElementById('draft-status-pill');
 
+// Global Home Navigation
+const brandHomeBtn = document.getElementById('brand-home-btn');
+const globalHomeBtn = document.getElementById('global-home-btn');
+const stage3HomeBtn = document.getElementById('stage-3-home-btn');
+
 // Global Header Voice
 const voiceSelectorBtn = document.getElementById('voice-selector-btn');
 const headerVoiceDot = document.getElementById('header-voice-dot');
@@ -367,6 +372,15 @@ function switchStage(stageNum) {
   stagePanels.forEach((panel, idx) => {
     panel.classList.toggle('hidden', idx + 1 !== stageNum);
   });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function goHome() {
+  switchStage(1);
+  closeVoiceModal();
+  if (excerptModal) excerptModal.classList.add('hidden');
+  if (engineModal) engineModal.classList.add('hidden');
+  if (stepDetailsDrawer) stepDetailsDrawer.classList.add('hidden');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -1364,6 +1378,23 @@ async function checkChromeAIStatus() {
 // --- Event Listeners Setup ---
 
 function setupEventListeners() {
+  // Global Home Navigation (Return to Stage 1 from anywhere)
+  if (brandHomeBtn) {
+    brandHomeBtn.addEventListener('click', goHome);
+    brandHomeBtn.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        goHome();
+      }
+    });
+  }
+  if (globalHomeBtn) {
+    globalHomeBtn.addEventListener('click', goHome);
+  }
+  if (stage3HomeBtn) {
+    stage3HomeBtn.addEventListener('click', goHome);
+  }
+
   // Stepper Bar Stage Selection
   stageNavItems.forEach((btn, idx) => {
     btn.addEventListener('click', () => {
