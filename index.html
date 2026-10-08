@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stop Slop — Cognitive Writing & Voice Studio</title>
+  <meta name="description" content="Eliminate AI writing patterns and restore authentic human voice using author persona modeling and a 4-pass cognitive engine." />
+  
+  <!-- PWA Manifest & Icons -->
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+  <meta name="theme-color" content="#0B0F19" />
+  <link rel="apple-touch-icon" href="./icon.svg" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <script type="module" crossorigin src="./assets/index-IMcfr9qQ.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-CQfBxjY6.css">
+</head>
+<body class="dark-theme">
+  <!-- Top Global Navigation Bar -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="brand-logo-container">
+        <img src="./icon.svg" alt="Stop Slop Logo" class="brand-logo" width="36" height="36" />
+        <div class="brand-titles">
+          <div class="brand-name-row">
+            <span class="brand-name">Stop Slop</span>
+            <span class="brand-badge">v4.0.0</span>
+          </div>
+          <span class="brand-subtitle">Cognitive Voice & Anti-Slop Studio</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="header-center">
+      <button id="engine-selector-btn" class="engine-badge-btn" title="Configure LLM Backend">
+        <span class="engine-pulse-dot" id="engine-status-dot"></span>
+        <span id="current-engine-label">Demo Simulation</span>
+        <svg class="chevron-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+    </div>
+
+    <div class="header-right">
+      <button id="pwa-install-btn" class="header-action-btn hidden" title="Install App to Desktop/Mobile">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>Install App</span>
+      </button>
+      <a href="https://github.com/professorgeorge/stop-slop" target="_blank" rel="noopener noreferrer" class="header-icon-link" title="View on GitHub">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+      </a>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="app-main">
+    <div class="workspace-grid">
+      
+      <!-- Left Column: Input & Author Persona Control -->
+      <section class="panel input-panel">
+        <div class="panel-header">
+          <div class="panel-title-group">
+            <h2 class="panel-title">Original Content</h2>
+            <span class="panel-badge" id="input-stats-badge">0 words</span>
+          </div>
+          <div class="panel-actions">
+            <!-- Preset Selector -->
+            <select id="preset-selector" class="preset-select" title="Load a demo preset">
+              <option value="" disabled selected>✨ Load a sample draft...</option>
+            </select>
+            <button id="clear-input-btn" class="icon-btn" title="Clear text">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="textarea-wrapper">
+          <textarea id="source-text" class="prose-textarea" placeholder="Paste your essay, scholarly paper abstract, technical memo, or report here to transform it..."></textarea>
+        </div>
+
+        <!-- Author Persona Selector Section -->
+        <div class="persona-section">
+          <div class="persona-section-header">
+            <div class="persona-title-group">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              <span class="section-label">Author Persona Stance</span>
+            </div>
+            <button id="extract-persona-btn" class="text-link-btn" title="Infer persona from your writing sample">
+              ✨ Extract My Voice
+            </button>
+          </div>
+
+          <div class="persona-chips" id="persona-chips-container">
+            <!-- Populated via JS -->
+          </div>
+
+          <div class="active-persona-summary" id="persona-summary-box">
+            <div class="persona-desc-row">
+              <span id="persona-desc-text">Operational engineering voice: concrete trade-offs, failure modes, zero marketing fluff.</span>
+              <button id="toggle-card-yaml-btn" class="card-toggle-btn">View Card YAML</button>
+            </div>
+            <pre id="persona-card-yaml" class="yaml-viewer hidden"></pre>
+          </div>
+        </div>
+
+        <!-- Execution Action Row -->
+        <div class="input-actions-bar">
+          <button id="detect-only-btn" class="btn btn-secondary" title="Audit patterns without rewriting">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <span>Scan AI Tells Only</span>
+          </button>
+          <button id="run-pipeline-btn" class="btn btn-primary" title="Execute 4-Pass Cognitive Transformation">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <span>Run 4-Pass Rewrite</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Right Column: Pipeline Stepper & Output Studio -->
+      <section class="panel output-panel">
+        
+        <!-- The 4-Pass Cognitive Stepper Bar -->
+        <div class="pipeline-stepper" id="pipeline-stepper">
+          <div class="step-node" id="step-node-1" data-step="1">
+            <div class="step-dot">1</div>
+            <span class="step-label">Substance</span>
+          </div>
+          <div class="step-connector" id="step-connector-1"></div>
+          <div class="step-node" id="step-node-2" data-step="2">
+            <div class="step-dot">2</div>
+            <span class="step-label">Persona</span>
+          </div>
+          <div class="step-connector" id="step-connector-2"></div>
+          <div class="step-node" id="step-node-3" data-step="3">
+            <div class="step-dot">3</div>
+            <span class="step-label">Draft</span>
+          </div>
+          <div class="step-connector" id="step-connector-3"></div>
+          <div class="step-node" id="step-node-4" data-step="4">
+            <div class="step-dot">4</div>
+            <span class="step-label">Audit</span>
+          </div>
+        </div>
+
+        <!-- Intermediate Step Drawer (expandable) -->
+        <div class="step-details-drawer hidden" id="step-details-drawer">
+          <div class="drawer-header">
+            <span id="drawer-title" class="drawer-title">Pass 1: Substance Extraction</span>
+            <button id="close-drawer-btn" class="close-drawer-btn">✕</button>
+          </div>
+          <div id="drawer-content" class="drawer-content"></div>
+        </div>
+
+        <!-- Output Tabs & Actions -->
+        <div class="panel-header output-header">
+          <div class="tab-pill-group">
+            <button class="tab-pill active" data-tab="rewrite">Rewritten Prose</button>
+            <button class="tab-pill" data-tab="diff">Before / After Diff</button>
+            <button class="tab-pill" data-tab="stylometrics">Stylometrics & Audit</button>
+          </div>
+
+          <div class="output-actions">
+            <button id="copy-output-btn" class="icon-btn" title="Copy to clipboard">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+            </button>
+            <button id="download-output-btn" class="icon-btn" title="Download Markdown">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Tab 1: Rewritten Prose -->
+        <div class="tab-pane active" id="tab-pane-rewrite">
+          <div class="output-prose-container" id="output-prose-box">
+            <div class="empty-state">
+              <div class="empty-state-icon">✍️</div>
+              <h3>Ready to Humanize</h3>
+              <p>Load a sample above or paste your text to begin. The engine will extract core substance, apply your selected author persona, and generate natural, unconstrained prose.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Diff Viewer -->
+        <div class="tab-pane hidden" id="tab-pane-diff">
+          <div class="diff-container" id="diff-container">
+            <div class="diff-split-view">
+              <div class="diff-column">
+                <h4>Original Text</h4>
+                <div id="diff-original-content" class="diff-content"></div>
+              </div>
+              <div class="diff-column">
+                <h4>Transformed Human Prose</h4>
+                <div id="diff-transformed-content" class="diff-content"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 3: Stylometrics & Audit -->
+        <div class="tab-pane hidden" id="tab-pane-stylometrics">
+          <div class="stylometrics-container">
+            <!-- Score Cards -->
+            <div class="metrics-grid">
+              <div class="metric-card">
+                <span class="metric-title">Naturalness Score</span>
+                <span class="metric-value accent-green" id="metric-score">--</span>
+                <span class="metric-sub" id="metric-score-delta">Target ≥ 85/100</span>
+              </div>
+              <div class="metric-card">
+                <span class="metric-title">Type-Token Ratio (TTR)</span>
+                <span class="metric-value" id="metric-ttr">--</span>
+                <span class="metric-sub">Human range: 0.45 – 0.65</span>
+              </div>
+              <div class="metric-card">
+                <span class="metric-title">Burstiness (SD)</span>
+                <span class="metric-value" id="metric-burstiness">--</span>
+                <span class="metric-sub">Sentence length variance</span>
+              </div>
+              <div class="metric-card">
+                <span class="metric-title">Residual AI Tells</span>
+                <span class="metric-value accent-cyan" id="metric-tells">--</span>
+                <span class="metric-sub">Target: 0 tells</span>
+              </div>
+            </div>
+
+            <!-- Findings List -->
+            <div class="audit-findings-section">
+              <h4 class="findings-header">Pattern Inspection & Linter Findings</h4>
+              <div class="findings-list" id="findings-list">
+                <div class="empty-findings">Run an audit or rewrite to inspect detected patterns.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+  </main>
+
+  <!-- LLM Engine Configuration Modal -->
+  <div class="modal-overlay hidden" id="engine-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Configure LLM Backend</h3>
+        <button id="close-engine-modal-btn" class="icon-btn">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="engine-tabs">
+          <button class="engine-tab active" data-provider="demo">⚡ Demo Simulation</button>
+          <button class="engine-tab" data-provider="chrome-ai">✨ Chrome Built-in AI</button>
+          <button class="engine-tab" data-provider="ollama">🦙 Local Ollama</button>
+          <button class="engine-tab" data-provider="gemini">🌟 Google Gemini</button>
+          <button class="engine-tab" data-provider="openai">⚡ OpenAI / Groq</button>
+        </div>
+
+        <!-- Provider 1: Demo Simulation -->
+        <div class="provider-config-pane active" id="pane-demo">
+          <p class="provider-help">
+            Instantly run the full 4-Pass pipeline on sample scholarly articles and memos. Works offline with zero setup and zero API keys!
+          </p>
+        </div>
+
+        <!-- Provider 2: Chrome Built-in AI -->
+        <div class="provider-config-pane hidden" id="pane-chrome-ai">
+          <div class="chrome-ai-status-box" id="chrome-ai-status-box">
+            <div class="status-indicator-dot" id="chrome-dot"></div>
+            <div class="status-indicator-text">
+              <strong id="chrome-status-title">Detecting Chrome Built-in AI...</strong>
+              <p id="chrome-status-desc">Chrome 127+ features on-device Gemini Nano via the experimental Prompt API.</p>
+            </div>
+          </div>
+          <p class="provider-help">
+            Runs 100% locally on your machine. Text never leaves your device. No API keys needed.
+          </p>
+        </div>
+
+        <!-- Provider 3: Local Ollama -->
+        <div class="provider-config-pane hidden" id="pane-ollama">
+          <div class="form-group">
+            <label for="ollama-endpoint">Ollama Endpoint URL</label>
+            <input type="text" id="ollama-endpoint" class="form-input" value="http://localhost:11434/v1" />
+          </div>
+          <div class="form-group">
+            <label for="ollama-model">Model Name</label>
+            <input type="text" id="ollama-model" class="form-input" value="llama3.2" placeholder="e.g. llama3.2, mistral, qwen2.5, deepseek-r1" />
+          </div>
+          <p class="provider-help tip">
+            💡 <strong>Tip:</strong> If connecting from a browser, ensure Ollama allows CORS by starting it with: <code>OLLAMA_ORIGINS="*" ollama serve</code>
+          </p>
+        </div>
+
+        <!-- Provider 4: Google Gemini API -->
+        <div class="provider-config-pane hidden" id="pane-gemini">
+          <div class="form-group">
+            <label for="gemini-key">Gemini API Key</label>
+            <input type="password" id="gemini-key" class="form-input" placeholder="AIzaSy..." />
+          </div>
+          <div class="form-group">
+            <label for="gemini-model">Gemini Model</label>
+            <select id="gemini-model" class="form-input">
+              <option value="gemini-2.0-flash" selected>gemini-2.0-flash (Recommended, blazing fast)</option>
+              <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+              <option value="gemini-1.5-pro">gemini-1.5-pro</option>
+            </select>
+          </div>
+          <p class="provider-help">
+            Key is stored solely in your browser's <code>localStorage</code> and sent directly to Google.
+          </p>
+        </div>
+
+        <!-- Provider 5: OpenAI / Groq / OpenRouter -->
+        <div class="provider-config-pane hidden" id="pane-openai">
+          <div class="form-group">
+            <label for="openai-endpoint">Endpoint Base URL</label>
+            <input type="text" id="openai-endpoint" class="form-input" value="https://api.groq.com/openai/v1" placeholder="https://api.openai.com/v1" />
+          </div>
+          <div class="form-group">
+            <label for="openai-key">API Key</label>
+            <input type="password" id="openai-key" class="form-input" placeholder="gsk_... or sk-..." />
+          </div>
+          <div class="form-group">
+            <label for="openai-model">Model Name</label>
+            <input type="text" id="openai-model" class="form-input" value="llama-3.3-70b-versatile" placeholder="e.g. gpt-4o-mini, llama-3.3-70b-versatile" />
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="save-engine-btn" class="btn btn-primary">Save & Connect</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Persona Extraction Modal -->
+  <div class="modal-overlay hidden" id="persona-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Extract My Author Voice</h3>
+        <button id="close-persona-modal-btn" class="icon-btn">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="provider-help">
+          Paste 1–2 paragraphs of something you actually wrote (an old blog post, email, research excerpt, or GitHub PR). The engine will analyze your cadence, epistemic stance, and vocabulary preferences to build a custom <strong>Author Card</strong>.
+        </p>
+        <div class="form-group">
+          <label for="sample-author-text">Your Writing Sample</label>
+          <textarea id="sample-author-text" class="prose-textarea sample-input" placeholder="Paste your genuine writing sample here..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="generate-custom-persona-btn" class="btn btn-primary">Analyze & Apply My Persona</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main JavaScript bundle -->
+</body>
+</html>
