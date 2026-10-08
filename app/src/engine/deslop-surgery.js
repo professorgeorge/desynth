@@ -52,46 +52,121 @@ export const NOMINALIZATION_REPLACEMENTS = [
 ];
 
 /**
- * Runs deterministic surgical slop amputation on text.
+ * Runs deterministic surgical slop amputation on text while strictly preserving
+ * paragraph breaks (\n\n), markdown headers (#), bullet lists, and numbered lists.
  * @param {string} text - Raw input text
- * @returns {string} Cleaned, compacted prose
+ * @returns {string} Cleaned prose with 100% formatting structure intact
  */
 export function amputateSlop(text) {
   if (!text || typeof text !== 'string') return '';
-  let clean = text;
+  
+  // Process block-by-block to preserve line breaks, headers, and bullet formatting
+  const lines = text.split('\n');
+  const processed = lines.map(line => {
+    if (!line.trim()) return '';
 
-  // 1. Cut throat-clearing openers
-  for (const pattern of THROAT_CLEARING_PATTERNS) {
-    clean = clean.replace(pattern, '');
-  }
+    // Detect and preserve markdown headers or list prefixes
+    let prefix = '';
+    let content = line;
 
-  // 2. Replace nominalizations and wordy euphemisms
-  for (const { regex, replace } of NOMINALIZATION_REPLACEMENTS) {
-    clean = clean.replace(regex, replace);
-  }
+    const headingMatch = line.match(/^(#{1,6}\s+)(.*)$/);
+    if (headingMatch) {
+      prefix = headingMatch[1];
+      content = headingMatch[2];
+    } else {
+      const listMatch = line.match(/^(\s*(?:[-*+]|\d+\.)\s+)(.*)$/);
+      if (listMatch) {
+        prefix = listMatch[1];
+        content = listMatch[2];
+      }
+    }
 
-  // 3. Purge artificial AI em-dashes (— and --), replacing with natural punctuation or clean pauses
-  // LLMs notoriously overuse em-dashes for sentence-padding and fake profundity.
-  clean = clean
-    .replace(/\s*—\s*/g, ', ')
-    .replace(/\s*--\s*/g, ', ')
-    .replace(/,\s*,/g, ',');
+    let clean = content;
 
-  // 4. Clean up sentence punctuation debris left behind by deletions
-  clean = clean
-    // Capitalize first letter of sentences if throat-clearing was at sentence start
-    .replace(/(^[a-z]|(?<=[.!?]\s+)[a-z])/g, m => m.toUpperCase())
-    // Remove orphaned commas at start of sentences
-    .replace(/(?<=[.!?]\s+),\s*/g, '')
-    .replace(/^,\s*/, '')
-    // Remove double commas or double periods
-    .replace(/,\s*,/g, ',')
-    .replace(/\.{2,}/g, '.')
-    // Collapse excessive whitespace
-    .replace(/[ \t]{2,}/g, ' ')
-    .trim();
+    // 1. Cut throat-clearing openers
+    for (const pattern of THROAT_CLEARING_PATTERNS) {
+      clean = clean.replace(pattern, '');
+    }
 
-  return clean;
+    // 2. Replace nominalizations and wordy euphemisms
+    for (const { regex, replace } of NOMINALIZATION_REPLACEMENTS) {
+      clean = clean.replace(regex, replace);
+    }
+
+    // 3. Purge artificial AI em-dashes (— and --), replacing with natural punctuation
+    clean = clean
+      .replace(/\s*—\s*/g, ', ')
+      .replace(/\s*--\s*/g, ', ')
+      .replace(/,\s*,/g, ',');
+
+    // 4. Clean up sentence punctuation debris
+    clean = clean
+      .replace(/(^[a-z]|(?<=[.!?]\s+)[a-z])/g, m => m.toUpperCase())
+      .replace(/(?<=[.!?]\s+),\s*/g, '')
+      .replace(/^,\s*/, '')
+      .replace(/,\s*,/g, ',')
+      .replace(/\.{2,}/g, '.')
+      .replace(/[ \t]{2,}/g, ' ')
+      .trim();
+
+    return prefix + clean;
+  });
+
+  return processed.join('\n');
+}
+
+/**
+ * Humanizes AI-generated text with 100% formatting and idea preservation.
+ * Surgically removes the synthetic taste, artificial binary contrasts, signposts,
+ * and robotic filler while maintaining every paragraph, idea, and technical detail.
+ * @param {string} text - Input draft
+ * @param {object} persona - Selected author persona
+ * @returns {string} Humanized prose
+ */
+export function humanizePreservingStructure(text, persona) {
+  if (!text || typeof text !== 'string') return '';
+
+  const paragraphs = text.split(/\n\n+/);
+  const humanizedParagraphs = paragraphs.map(para => {
+    if (!para.trim()) return '';
+
+    let p = para;
+
+    // 1. Remove rhetorical signposts and conversational filler
+    p = p
+      .replace(/\b(?:furthermore|moreover|in addition to this|what['’]s more),?\s*/gi, '')
+      .replace(/\b(?:in conclusion|to conclude|all in all|in summary),?\s*/gi, '')
+      .replace(/\b(?:let that sink in[:.]?|full stop\.?|the kicker[?:]?)\s*/gi, '')
+      .replace(/\b(?:here['’]s the thing:?|what if I told you that)\s*/gi, '')
+      .replace(/\b(?:as of my last update,?\s*)\b/gi, '')
+      .replace(/\b(?:at its core,?\s*)\b/gi, '')
+      .replace(/\b(?:a watershed moment for)\b/gi, 'a turning point in')
+      .replace(/\b(?:serves as a testament to(?: the fact that| the)?)\b/gi, 'shows')
+      .replace(/\b(?:delv(?:e|es|ed|ing) deep(?:ly)? into)\b/gi, 'examin$1')
+      .replace(/\b(?:intricate tapestry of)\b/gi, 'structure of')
+      .replace(/\b(?:poised to become)\b/gi, 'will become')
+      .replace(/\b(?:seamlessly intertwin(?:e|es|ed|ing))\b/gi, 'connect$1');
+
+    // 2. Dissolve fake binary contrasts ("It is not merely about X; rather, it is about Y")
+    p = p.replace(
+      /(?:it['’]s|it is) not (?:just|merely|only) about ([^;.,]+?)[;,—]\s*(?:rather|instead|it['’]s about|it is about)\s+([^.]+?)\./gi,
+      (match, a, b) => `${b.trim()}, rather than ${a.trim()}.`
+    );
+
+    // 3. Run surgical slop amputation
+    p = amputateSlop(p);
+
+    // 4. Clean up any leading colon or semicolon left after removal (e.g. after "let that sink in:")
+    p = p.replace(/(?:^|\n)(#+\s*|[-*]\s*|\d+\.\s*)?[:;,]\s*/g, (match, prefix) => prefix ? prefix : '');
+
+    // 5. Clean up duplicate spaces and capitalize starting letters after sentence breaks
+    p = p.replace(/[ \t]{2,}/g, ' ')
+         .replace(/(^|[.!?]\s+)([a-z])/g, (m, sep, char) => sep + char.toUpperCase());
+
+    return p;
+  });
+
+  return humanizedParagraphs.join('\n\n');
 }
 
 /**

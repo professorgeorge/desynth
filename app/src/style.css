@@ -1073,6 +1073,134 @@ body {
 }
 
 /* ==========================================================================
+   TRANSFORMATION MODE & FIDELITY SETTINGS
+   ========================================================================== */
+
+.workbench-settings-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 8px 14px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.settings-left-col,
+.settings-right-col {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-bar-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent-amber);
+}
+
+.settings-bar-sublabel {
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.mode-select-dropdown {
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.mode-select-dropdown:hover {
+  border-color: var(--border-accent);
+}
+
+.mode-select-dropdown:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 2px rgba(226, 135, 67, 0.2);
+}
+
+.mode-select-sm {
+  font-size: 0.78rem;
+  padding: 4px 10px;
+}
+
+.fidelity-guarantees-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.fidelity-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background: rgba(78, 163, 130, 0.1);
+  color: var(--accent-green);
+  border: 1px solid rgba(78, 163, 130, 0.25);
+  transition: all 0.2s ease;
+}
+
+.fidelity-pill svg {
+  stroke: var(--accent-green);
+}
+
+.fidelity-pill.inactive {
+  opacity: 0.45;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted);
+  border-color: var(--border-subtle);
+}
+
+.fidelity-pill.inactive svg {
+  stroke: var(--text-muted);
+}
+
+body.light-theme .workbench-settings-bar {
+  background: #F4EFE6;
+  border-color: var(--border-subtle);
+}
+
+body.light-theme .mode-select-dropdown {
+  background: #FFFFFF;
+  color: var(--text-primary);
+  border-color: var(--border-subtle);
+}
+
+body.light-theme .fidelity-pill {
+  background: rgba(43, 122, 93, 0.1);
+  color: #1A543E;
+  border-color: rgba(43, 122, 93, 0.25);
+}
+
+body.light-theme .fidelity-pill svg {
+  stroke: #1A543E;
+}
+
+
+/* ==========================================================================
    STAGE FOOTER & ACTION BARS
    ========================================================================== */
 

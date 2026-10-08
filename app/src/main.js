@@ -37,7 +37,8 @@ const STORAGE_KEYS = {
   customPersona: 'stop_slop_custom_persona',
   customPersonas: 'stop_slop_custom_personas',
   activePersonaId: 'stop_slop_active_persona_id',
-  theme: 'stop_slop_theme'
+  theme: 'stop_slop_theme',
+  mode: 'stop_slop_mode'
 };
 
 // Cloud provider presets
@@ -115,6 +116,7 @@ const state = {
   activeVoiceFilter: 'all',
   activeResultTab: 'rewrite',
   theme: localStorage.getItem('stop_slop_theme') || 'dark',
+  transformationMode: localStorage.getItem('stop_slop_mode') || 'preserve-format',
   activeProvider: localStorage.getItem(STORAGE_KEYS.provider) || 'demo',
   providerConfigs: {
     demo: {},
@@ -233,6 +235,11 @@ const modernArchetypesGrid = document.getElementById('modern-archetypes-grid');
 const sourceTextEl = document.getElementById('source-text');
 const presetSelectorEl = document.getElementById('preset-selector');
 const densitySelectorEl = document.getElementById('density-selector');
+const transformationModeSelect = document.getElementById('transformation-mode-select');
+const densityControlWrapper = document.getElementById('density-control-wrapper');
+const pillLayoutFidelity = document.getElementById('pill-layout-fidelity');
+const pillIdeaFidelity = document.getElementById('pill-idea-fidelity');
+const pillDeslopFidelity = document.getElementById('pill-deslop-fidelity');
 const clearInputBtn = document.getElementById('clear-input-btn');
 const inputStatsBadge = document.getElementById('input-stats-badge');
 const loadedFileName = document.getElementById('loaded-file-name');
@@ -370,9 +377,31 @@ function applyTheme(theme, save = true) {
   }
 }
 
+function updateTransformationModeUI() {
+  const mode = state.transformationMode || 'preserve-format';
+  if (transformationModeSelect) {
+    transformationModeSelect.value = mode;
+  }
+  if (densityControlWrapper) {
+    densityControlWrapper.classList.toggle('hidden', mode !== 'compress');
+  }
+  if (pillLayoutFidelity) {
+    pillLayoutFidelity.classList.toggle('inactive', mode === 'compress');
+  }
+  if (pillIdeaFidelity) {
+    pillIdeaFidelity.classList.toggle('inactive', mode === 'compress');
+  }
+  if (runButtonLabel) {
+    runButtonLabel.textContent = mode === 'preserve-format'
+      ? '🛡️ Humanize (Preserve Format & Ideas) →'
+      : '⚡ Compress & Humanize →';
+  }
+}
+
 // --- Initialization ---
 function init() {
   applyTheme(state.theme, false);
+  updateTransformationModeUI();
   renderPresetSelector();
   renderClassicMasters();
   renderModernArchetypes();
@@ -1180,11 +1209,13 @@ async function handleRunPipeline() {
 
   try {
     const densityVal = densitySelectorEl ? densitySelectorEl.value : 'balanced';
+    const modeVal = state.transformationMode || 'preserve-format';
 
     const pipelineResult = await runCognitivePipeline({
       input: text,
       persona: state.activePersona,
       engineConfig: engineCfg,
+      mode: modeVal,
       density: densityVal,
       onStepUpdate: ({ step, name, status, data }) => {
         updateStepperState(step, status);
@@ -1261,7 +1292,17 @@ function renderResults(result) {
 
   // Update Compression Badge
   if (compressionBadge) {
-    compressionBadge.textContent = `⚡ -${result.compressionRatio}% words (${result.densityMode || 'balanced'})`;
+    if (result.mode === 'preserve-format' || result.preserveFormatting) {
+      compressionBadge.textContent = `🛡️ 1:1 Format & Idea Fidelity (${result.outputWords || 0} words)`;
+      compressionBadge.style.background = 'rgba(78, 163, 130, 0.15)';
+      compressionBadge.style.color = 'var(--accent-green)';
+      compressionBadge.style.borderColor = 'rgba(78, 163, 130, 0.35)';
+    } else {
+      compressionBadge.textContent = `⚡ -${result.compressionRatio}% words (${result.densityMode || 'balanced'})`;
+      compressionBadge.style.background = '';
+      compressionBadge.style.color = '';
+      compressionBadge.style.borderColor = '';
+    }
     compressionBadge.classList.remove('hidden');
   }
 }
@@ -1550,6 +1591,14 @@ function setupEventListeners() {
 
   // Stage 2: Draft controls
   sourceTextEl.addEventListener('input', updateDraftWordCountAndRadar);
+
+  if (transformationModeSelect) {
+    transformationModeSelect.addEventListener('change', (e) => {
+      state.transformationMode = e.target.value;
+      localStorage.setItem('stop_slop_mode', state.transformationMode);
+      updateTransformationModeUI();
+    });
+  }
 
   clearInputBtn.addEventListener('click', () => {
     sourceTextEl.value = '';

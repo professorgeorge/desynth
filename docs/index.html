@@ -17,8 +17,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 
-  <script type="module" crossorigin src="./assets/index-DdyTOzBF.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-C3hYjhuq.css">
+  <script type="module" crossorigin src="./assets/index-C7BKe8tb.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-BdxQecfO.css">
 </head>
 <body class="dark-theme">
   <!-- Top Global Navigation Bar -->
@@ -382,6 +382,45 @@
             <input type="file" id="draft-file-input" class="hidden-file-input" accept=".txt,.md,.text,.markdown,.docx,.pdf" />
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
             <span>Drop draft file (.txt, .md, Word .docx, PDF .pdf) here, or browse</span>
+          </div>
+
+          <!-- Transformation Mode & Fidelity Settings Bar -->
+          <div class="workbench-settings-bar">
+            <div class="settings-left-col">
+              <label for="transformation-mode-select" class="settings-bar-label">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <span>Transformation Mode:</span>
+              </label>
+              <select id="transformation-mode-select" class="mode-select-dropdown">
+                <option value="preserve-format" selected>🛡️ Preserve Format &amp; Ideas (De-Synthesize Taste Only)</option>
+                <option value="compress">⚡ Cognitive Compression (Aggressively Condense Length)</option>
+              </select>
+            </div>
+
+            <div class="settings-right-col hidden" id="density-control-wrapper">
+              <label for="density-selector" class="settings-bar-sublabel">Target Budget:</label>
+              <select id="density-selector" class="mode-select-dropdown mode-select-sm">
+                <option value="dense">Dense (45% words)</option>
+                <option value="balanced" selected>Balanced (60% words)</option>
+                <option value="narrative">Narrative (75% words)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Active Fidelity Guarantees Pill Bar -->
+          <div class="fidelity-guarantees-bar" id="fidelity-guarantees-bar">
+            <div class="fidelity-pill active" id="pill-layout-fidelity" title="Every paragraph, markdown heading, bullet list, and numbered item is preserved 1:1">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>1:1 Layout &amp; Paragraphs Preserved</span>
+            </div>
+            <div class="fidelity-pill active" id="pill-idea-fidelity" title="Zero claims, arguments, technical details, or facts are altered or omitted">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Zero Idea Alteration</span>
+            </div>
+            <div class="fidelity-pill active" id="pill-deslop-fidelity" title="Only artificial AI phrasing, throat-clearing, clichés, and em dashes are sanitized">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Purge Synthetic AI Taste</span>
+            </div>
           </div>
 
           <div class="textarea-wrapper" style="margin-top:12px;">
