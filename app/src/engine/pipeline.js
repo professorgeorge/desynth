@@ -113,12 +113,24 @@ export async function runCognitivePipeline({
   input,
   persona,
   engineConfig,
-  mode = 'preserve-format', // 'preserve-format' (default) vs 'compress'
-  density = 'balanced',    // 'dense' (45%), 'balanced' (60%), 'narrative' (75%)
-  strategy = 'auto',       // 'auto' (default), 'chunks', 'single-pass'
+  treatment = 'full-fidelity', // 'full-fidelity' (100% detail), 'lean-tighten' (~90% natural trim), 'condense-brief' (~50% summary)
+  mode = 'preserve-format',     // backward compatibility
+  density = 'balanced',        // backward compatibility
+  strategy = 'auto',           // 'auto' (default), 'chunks', 'single-pass'
   onStepUpdate
 }) {
-  const isPreserveFormat = mode === 'preserve-format';
+  // Normalize treatment: full-fidelity (default), lean-tighten, or condense-brief
+  let normalizedTreatment = treatment;
+  if (!normalizedTreatment || normalizedTreatment === 'preserve-format') {
+    normalizedTreatment = 'full-fidelity';
+  } else if (normalizedTreatment === 'compress') {
+    normalizedTreatment = 'condense-brief';
+  }
+
+  const isFullFidelity = normalizedTreatment === 'full-fidelity';
+  const isLeanTighten = normalizedTreatment === 'lean-tighten';
+  const isCondenseBrief = normalizedTreatment === 'condense-brief';
+  const isPreserveFormat = isFullFidelity || isLeanTighten;
   const inputWords = input.trim().split(/\s+/).filter(Boolean).length;
   
   // Determine if section chunking should be used
@@ -126,14 +138,14 @@ export async function runCognitivePipeline({
   const chunks = isChunking ? chunkDocument(input, 850) : null;
   const useMultiChunk = isChunking && chunks && chunks.length > 1;
 
-  // Calculate target compression budget (used only in compress mode)
-  const ratio = density === 'dense' ? 0.45 : density === 'narrative' ? 0.75 : 0.60;
-  const targetWords = isPreserveFormat ? inputWords : Math.max(30, Math.round(inputWords * ratio));
+  // Target word count based on treatment
+  const targetWords = isFullFidelity ? inputWords : isLeanTighten ? Math.round(inputWords * 0.90) : Math.round(inputWords * 0.50);
   const minWords = Math.max(20, Math.round(targetWords * 0.8));
   const maxWords = Math.round(targetWords * 1.2);
 
   const result = {
-    mode,
+    treatment: normalizedTreatment,
+    mode: isPreserveFormat ? 'preserve-format' : 'compress',
     strategy,
     isChunking: useMultiChunk,
     totalChunks: useMultiChunk ? chunks.length : 1,
@@ -144,7 +156,7 @@ export async function runCognitivePipeline({
     rawDraft: '',
     finalRewrite: '',
     compressionRatio: 0,
-    densityMode: density,
+    densityMode: normalizedTreatment,
     inputLint: lintProse(input),
     outputLint: null,
     auditNotes: []
@@ -164,12 +176,17 @@ export async function runCognitivePipeline({
     const headers = (input.match(/^#{1,6}\s+.+$/gm) || []).length;
     const listItems = (input.match(/^\s*([-*+]|\d+\.)\s+.+$/gm) || []).length;
 
+    const treatmentTitle = isFullFidelity
+      ? '🛡️ Full Fidelity (100% Detail & Ideas Preserved)'
+      : '✂️ Lean Editorial Polish (Trim Verbosity, Keep All Ideas)';
+
     result.factGraph = [
       `🛡️ DOCUMENT SKELETON & STRATEGY MAP:`,
       `• Paragraphs: ${paragraphs.length} blocks locked for 1:1 preservation`,
       `• Headings: ${headers} markdown sections mapped`,
       `• List Items: ${listItems} structured points mapped`,
       `• Total Words: ${inputWords} words`,
+      `• Editorial Treatment: ${treatmentTitle}`,
       `• Execution Strategy: ${useMultiChunk ? `🧩 Semantic Chunking (${chunks.length} sections, ~${Math.round(inputWords / chunks.length)} words each)` : '⚡ Whole-Document Single-Pass'}`,
       `• Memory Footprint: ${useMultiChunk ? 'Ultra-low RAM (Optimized for 8GB–16GB laptops / 2k–4k Context)' : 'Full Buffer (Requires 24GB+ VRAM / 32k Context)'}`,
       ``,
@@ -272,6 +289,16 @@ RULES:
     } else if (useMultiChunk) {
       // Execute chunk-by-chunk for memory safety and maximum focus
       const sanitizedParts = [];
+      const treatmentDirectives = isLeanTighten
+        ? `EDITORIAL POLISH DIRECTIVES (TIGHTEN FLUFF, KEEP ALL IDEAS):
+1. ZERO STRUCTURE LOSS: Retain every paragraph break (\\n\\n), heading, bullet item, and list marker intact.
+2. ZERO IDEA LOSS: Retain every single argument, technical explanation, claim, entity, and metric.
+3. EDITORIAL TIGHTENING: Remove circular phrasing, trim verbose nominalizations, and prune unnecessary passive filler to make the prose vigorous and lean (~88%–94% natural length).
+4. REMOVE SYNTHETIC TASTE: Cut robotic throat-clearing, binary contrast clichés ("not merely X; rather Y"), corporate buzzwords ("tapestry", "delve"), and em-dashes.`
+        : `ABSOLUTE 1:1 PRESERVATION DIRECTIVES:
+1. ZERO FORMATTING CHANGES: Retain every single paragraph break (\\n\\n), heading, bullet item, and list marker verbatim.
+2. ZERO IDEA OR DETAIL ALTERATION: Preserve 100% of claims, explanations, metrics, and technical specifics. Do NOT summarize or cut length.
+3. REMOVE SYNTHETIC TASTE ONLY: Cut throat-clearing openings, binary contrast formulas, corporate buzzwords, and em-dashes. Break monotonous robotic sentence cadence with authentic human variation.`;
 
       for (let i = 0; i < chunks.length; i++) {
         const chunk = chunks[i];
@@ -292,22 +319,10 @@ RULES:
         const p3ChunkSystem = `You are a master human author and prose editor.
 Your objective is to humanize AI-generated text that already has sound ideas and logical progression, but suffers from sterile, synthetic "AI taste".
 
-ABSOLUTE PRESERVATION MANDATES:
-1. ZERO FORMATTING CHANGES:
-   - Retain every single paragraph break (\\n\\n) within this section exactly as written.
-   - Retain all markdown headings (#, ##, ###), bullet lists (-, *), numbered lists (1.), and quotes verbatim.
-   - NEVER combine multiple paragraphs into one single block.
-2. ZERO IDEA ALTERATION:
-   - Preserve every argument, technical explanation, claim, entity, and metric in this section.
-   - Do NOT add new claims and do NOT remove existing points.
-3. REMOVE SYNTHETIC TASTE & AI SLOP:
-   - Cut throat-clearing openings ("In today's fast-paced world", "It is crucial to remember that", "When it comes to").
-   - Eliminate false binary contrasts ("It is not merely about X; rather, it is about Y").
-   - Remove robotic corporate padding ("delve into", "tapestry", "seamlessly", "pivotal role", "at its core", "game-changer", "fostering").
-   - Purge artificial em-dashes (— and --); use natural commas, semicolons, or colons instead.
-   - Break monotonous robotic sentence cadence with authentic human variation.
-4. VOICE INFLUENCE:
-   - Adopt the natural vocabulary and cadence of the author persona: ${persona.name} (${persona.card?.epistemic_stance || 'empirical'}).
+${treatmentDirectives}
+
+VOICE INFLUENCE:
+- Adopt the natural vocabulary and cadence of the author persona: ${persona.name} (${persona.card?.epistemic_stance || 'empirical'}).
 
 Output ONLY the humanized prose for this section with exact formatting preserved. No preamble, no quotes, no conversational filler.`;
 
@@ -342,28 +357,30 @@ ${chunk.text}`;
 
       draft = sanitizedParts.join('\n\n');
     } else {
-      // Single-Pass LLM execution with strict formatting and idea preservation directives
-      onStepUpdate({ step: 3, name: 'Pass 3: Format-Preserving Humanization (Single-Pass)', status: 'running' });
+      // Single-Pass LLM execution
+      const passName = isFullFidelity
+        ? 'Pass 3: Full Fidelity Humanization (Single-Pass)'
+        : 'Pass 3: Lean Editorial Polish (Single-Pass)';
+      onStepUpdate({ step: 3, name: passName, status: 'running' });
+
+      const singleDirectives = isLeanTighten
+        ? `EDITORIAL POLISH DIRECTIVES (TIGHTEN FLUFF, KEEP ALL IDEAS):
+1. ZERO STRUCTURE LOSS: Retain every paragraph break (\\n\\n), heading, bullet item, and list marker intact.
+2. ZERO IDEA LOSS: Retain every single argument, technical explanation, claim, entity, and metric.
+3. EDITORIAL TIGHTENING: Remove circular phrasing, trim verbose nominalizations, and prune unnecessary passive filler to make the prose vigorous and lean (~88%–94% natural length).
+4. REMOVE SYNTHETIC TASTE: Cut robotic throat-clearing, binary contrast clichés ("not merely X; rather Y"), corporate buzzwords ("tapestry", "delve"), and em-dashes.`
+        : `ABSOLUTE 1:1 PRESERVATION DIRECTIVES:
+1. ZERO FORMATTING CHANGES: Retain every single paragraph break (\\n\\n), heading, bullet item, and list marker verbatim.
+2. ZERO IDEA OR DETAIL ALTERATION: Preserve 100% of claims, explanations, metrics, and technical specifics. Do NOT summarize or cut length.
+3. REMOVE SYNTHETIC TASTE ONLY: Cut throat-clearing openings, binary contrast formulas, corporate buzzwords, and em-dashes. Break monotonous robotic sentence cadence with authentic human variation.`;
 
       const p3System = `You are a master human author and prose editor.
 Your objective is to humanize AI-generated text that already has sound ideas and logical progression, but suffers from sterile, synthetic "AI taste".
 
-ABSOLUTE PRESERVATION MANDATES:
-1. ZERO FORMATTING CHANGES:
-   - Retain every single paragraph break (\\n\\n) exactly as written.
-   - Retain all markdown headings (#, ##, ###), bullet lists (-, *), numbered lists (1.), and quotes verbatim.
-   - NEVER combine multiple paragraphs into one single block.
-2. ZERO IDEA ALTERATION:
-   - Preserve every argument, technical explanation, claim, entity, and metric.
-   - Do NOT add new claims and do NOT remove existing points. The substantive content is already great.
-3. REMOVE SYNTHETIC TASTE & AI SLOP:
-   - Cut throat-clearing openings ("In today's fast-paced world", "It is crucial to remember that", "When it comes to").
-   - Eliminate false binary contrasts ("It is not merely about X; rather, it is about Y").
-   - Remove robotic corporate padding ("delve into", "tapestry", "seamlessly", "pivotal role", "at its core", "game-changer", "fostering").
-   - Purge artificial em-dashes (— and --); use natural commas, semicolons, or colons instead.
-   - Break monotonous robotic sentence cadence with authentic human variation (short punchy sentences alternating with rich clauses).
-4. VOICE INFLUENCE:
-   - Adopt the natural vocabulary and cadence of the author persona: ${persona.name} (${persona.card?.epistemic_stance || 'empirical'}).
+${singleDirectives}
+
+VOICE INFLUENCE:
+- Adopt the natural vocabulary and cadence of the author persona: ${persona.name} (${persona.card?.epistemic_stance || 'empirical'}).
 
 Output ONLY the humanized document with the exact original document formatting preserved. No preamble, no quotes, no conversational filler.`;
 
@@ -390,7 +407,7 @@ ${input}`;
     result.rawDraft = (draft || '').trim();
     onStepUpdate({
       step: 3,
-      name: `Pass 3: Format-Preserving Humanization ${useMultiChunk ? `(${chunks.length} sections combined)` : 'Complete'}`,
+      name: `Pass 3: ${isFullFidelity ? 'Full Fidelity' : 'Lean Polish'} Complete ${useMultiChunk ? `(${chunks.length} sections combined)` : ''}`,
       status: 'completed',
       data: result.rawDraft
     });
@@ -490,14 +507,16 @@ Write the compressed human version now (Target: ~${targetWords} words):`;
 
   const notes = [];
   if (isPreserveFormat) {
-    notes.push(`Transformation Mode: PRESERVE FORMAT & IDEAS (High Fidelity)`);
+    const treatLabel = isFullFidelity
+      ? 'FULL FIDELITY (100% Detail & Ideas Preserved)'
+      : 'LEAN EDITORIAL POLISH (Trim Fluff, Keep Ideas)';
+    notes.push(`Editorial Treatment: ${treatLabel}`);
     notes.push(`Layout Fidelity: 100% preserved (${outParas}/${inParas} paragraphs, all headers/lists intact)`);
     notes.push(`Idea Fidelity: 100% preserved (Zero claims or arguments altered)`);
     notes.push(`Execution Strategy: ${useMultiChunk ? `Section-by-Section (${chunks.length} chunks, low RAM)` : 'Single-Pass (Full document)'}`);
   } else {
-    const compLabel = result.compressionRatio > 0 ? `-${result.compressionRatio}% reduction` : `${outputWords} words`;
-    notes.push(`Transformation Mode: COGNITIVE COMPRESSION (~${targetWords} words)`);
-    notes.push(`Information Density: ${outputWords} words (${compLabel})`);
+    notes.push(`Editorial Treatment: EXECUTIVE BRIEF (Distilled Summary)`);
+    notes.push(`Information Density: ${outputWords} words (-${result.compressionRatio}% reduction)`);
   }
   notes.push(`Author Voice Model: ${persona.name} (${persona.card?.epistemic_stance || 'empirical'})`);
   notes.push(`Residual Synthetic Tells: ${result.outputLint.findings.length} (Score: ${result.outputLint.score}/100)`);

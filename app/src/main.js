@@ -39,6 +39,7 @@ const STORAGE_KEYS = {
   activePersonaId: 'stop_slop_active_persona_id',
   theme: 'stop_slop_theme',
   mode: 'stop_slop_mode',
+  treatment: 'stop_slop_treatment',
   strategy: 'stop_slop_strategy'
 };
 
@@ -117,6 +118,7 @@ const state = {
   activeVoiceFilter: 'all',
   activeResultTab: 'rewrite',
   theme: localStorage.getItem('stop_slop_theme') || 'dark',
+  editorialTreatment: localStorage.getItem('stop_slop_treatment') || 'full-fidelity',
   transformationMode: localStorage.getItem('stop_slop_mode') || 'preserve-format',
   executionStrategy: localStorage.getItem('stop_slop_strategy') || 'auto',
   activeProvider: localStorage.getItem(STORAGE_KEYS.provider) || 'demo',
@@ -236,10 +238,8 @@ const modernArchetypesGrid = document.getElementById('modern-archetypes-grid');
 // Stage 2: Target Draft
 const sourceTextEl = document.getElementById('source-text');
 const presetSelectorEl = document.getElementById('preset-selector');
-const densitySelectorEl = document.getElementById('density-selector');
-const transformationModeSelect = document.getElementById('transformation-mode-select');
+const editorialTreatmentSelect = document.getElementById('editorial-treatment-select') || document.getElementById('transformation-mode-select');
 const executionStrategySelect = document.getElementById('execution-strategy-select');
-const densityControlWrapper = document.getElementById('density-control-wrapper');
 const pillLayoutFidelity = document.getElementById('pill-layout-fidelity');
 const pillIdeaFidelity = document.getElementById('pill-idea-fidelity');
 const pillDeslopFidelity = document.getElementById('pill-deslop-fidelity');
@@ -382,24 +382,23 @@ function applyTheme(theme, save = true) {
   }
 }
 
-function updateTransformationModeUI() {
-  const mode = state.transformationMode || 'preserve-format';
-  if (transformationModeSelect) {
-    transformationModeSelect.value = mode;
-  }
-  if (densityControlWrapper) {
-    densityControlWrapper.classList.toggle('hidden', mode !== 'compress');
+function updateEditorialTreatmentUI() {
+  const treatment = state.editorialTreatment || 'full-fidelity';
+  if (editorialTreatmentSelect) {
+    editorialTreatmentSelect.value = treatment;
   }
   if (pillLayoutFidelity) {
-    pillLayoutFidelity.classList.toggle('inactive', mode === 'compress');
+    pillLayoutFidelity.classList.toggle('inactive', treatment === 'condense-brief');
   }
   if (pillIdeaFidelity) {
-    pillIdeaFidelity.classList.toggle('inactive', mode === 'compress');
+    pillIdeaFidelity.classList.toggle('inactive', treatment === 'condense-brief');
   }
   if (runButtonLabel) {
-    runButtonLabel.textContent = mode === 'preserve-format'
-      ? '🛡️ Humanize (Preserve Format & Ideas) →'
-      : '⚡ Compress & Humanize →';
+    runButtonLabel.textContent = treatment === 'full-fidelity'
+      ? '🛡️ Full Fidelity Polish (100% Detail) →'
+      : treatment === 'lean-tighten'
+      ? '✂️ Lean Editorial Polish →'
+      : '⚡ Executive Brief Summary →';
   }
 }
 
@@ -445,7 +444,7 @@ function updateStrategyPill() {
 // --- Initialization ---
 function init() {
   applyTheme(state.theme, false);
-  updateTransformationModeUI();
+  updateEditorialTreatmentUI();
   updateExecutionStrategyUI();
   renderPresetSelector();
   renderClassicMasters();
@@ -1254,15 +1253,13 @@ async function handleRunPipeline() {
   `;
 
   try {
-    const densityVal = densitySelectorEl ? densitySelectorEl.value : 'balanced';
-    const modeVal = state.transformationMode || 'preserve-format';
+    const treatmentVal = state.editorialTreatment || 'full-fidelity';
 
     const pipelineResult = await runCognitivePipeline({
       input: text,
       persona: state.activePersona,
       engineConfig: engineCfg,
-      mode: modeVal,
-      density: densityVal,
+      treatment: treatmentVal,
       strategy: state.executionStrategy || 'auto',
       onStepUpdate: ({ step, name, status, data }) => {
         updateStepperState(step, status);
@@ -1337,16 +1334,19 @@ function renderResults(result) {
     }
   }
 
-  // Update Compression Badge
+  // Update Treatment & Output Badge
   if (compressionBadge) {
-    if (result.mode === 'preserve-format' || result.preserveFormatting) {
-      const chunkTag = result.isChunking ? ` • 🧩 ${result.totalChunks} Sections` : '';
-      compressionBadge.textContent = `🛡️ 1:1 Format & Idea Fidelity${chunkTag} (${result.outputWords || 0} words)`;
+    const chunkTag = result.isChunking ? ` • 🧩 ${result.totalChunks} Sections` : '';
+    if (result.treatment === 'full-fidelity' || result.preserveFormatting) {
+      const treatmentLabel = result.treatment === 'lean-tighten'
+        ? `✂️ Lean Polish${chunkTag} (${result.outputWords || 0} words)`
+        : `🛡️ Full Fidelity${chunkTag} (${result.outputWords || 0} words)`;
+      compressionBadge.textContent = treatmentLabel;
       compressionBadge.style.background = 'rgba(78, 163, 130, 0.15)';
       compressionBadge.style.color = 'var(--accent-green)';
       compressionBadge.style.borderColor = 'rgba(78, 163, 130, 0.35)';
     } else {
-      compressionBadge.textContent = `⚡ -${result.compressionRatio}% words (${result.densityMode || 'balanced'})`;
+      compressionBadge.textContent = `⚡ Executive Brief (-${result.compressionRatio}% words)`;
       compressionBadge.style.background = '';
       compressionBadge.style.color = '';
       compressionBadge.style.borderColor = '';
@@ -1640,11 +1640,11 @@ function setupEventListeners() {
   // Stage 2: Draft controls
   sourceTextEl.addEventListener('input', updateDraftWordCountAndRadar);
 
-  if (transformationModeSelect) {
-    transformationModeSelect.addEventListener('change', (e) => {
-      state.transformationMode = e.target.value;
-      localStorage.setItem('stop_slop_mode', state.transformationMode);
-      updateTransformationModeUI();
+  if (editorialTreatmentSelect) {
+    editorialTreatmentSelect.addEventListener('change', (e) => {
+      state.editorialTreatment = e.target.value;
+      localStorage.setItem('stop_slop_treatment', state.editorialTreatment);
+      updateEditorialTreatmentUI();
     });
   }
 
@@ -1985,8 +1985,10 @@ function resetStudioFactory() {
   `;
   diffOriginalContent.innerHTML = '';
   diffTransformedContent.innerHTML = '';
-  if (densitySelectorEl) densitySelectorEl.value = 'balanced';
   if (compressionBadge) compressionBadge.classList.add('hidden');
+  state.editorialTreatment = 'full-fidelity';
+  localStorage.setItem('stop_slop_treatment', 'full-fidelity');
+  updateEditorialTreatmentUI();
   if (claimsContentBox) claimsContentBox.textContent = 'Atomic micro-claims will appear here after executing the pipeline.';
   if (syntaxFramesBox) syntaxFramesBox.textContent = 'Grafted sentence molds from the author model will appear here.';
 

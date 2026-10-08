@@ -344,12 +344,6 @@
             </p>
           </div>
           <div class="stage-intro-actions">
-            <!-- Information Density Selector -->
-            <select id="density-selector" class="preset-select" title="Target Information Density & Compression Budget">
-              <option value="dense">⚡ Maximum Density (45% words - Brutally concise)</option>
-              <option value="balanced" selected>⚖️ Balanced Human (60% words - Direct & natural)</option>
-              <option value="narrative">📖 Narrative Depth (75% words - Expanded context)</option>
-            </select>
             <!-- Preset Selector -->
             <select id="preset-selector" class="preset-select" title="Load a demo preset">
               <option value="" disabled selected>✨ Load sample draft...</option>
@@ -383,16 +377,17 @@
             <span>Drop draft file (.txt, .md, Word .docx, PDF .pdf) here, or browse</span>
           </div>
 
-          <!-- Transformation Mode & Execution Strategy Settings Bar -->
+          <!-- Editorial Treatment & Execution Strategy Settings Bar -->
           <div class="workbench-settings-bar">
             <div class="settings-left-col">
-              <label for="transformation-mode-select" class="settings-bar-label">
+              <label for="editorial-treatment-select" class="settings-bar-label">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                <span>Mode:</span>
+                <span>Editorial Polish:</span>
               </label>
-              <select id="transformation-mode-select" class="mode-select-dropdown">
-                <option value="preserve-format" selected>🛡️ Preserve Format &amp; Ideas (De-Synthesize Taste Only)</option>
-                <option value="compress">⚡ Cognitive Compression (Aggressively Condense Length)</option>
+              <select id="editorial-treatment-select" class="mode-select-dropdown" title="Choose editorial treatment: 100% full fidelity preservation, lean verbosity tightening, or executive brief">
+                <option value="full-fidelity" selected>🛡️ Full Fidelity (100% Detail &amp; Ideas Preserved)</option>
+                <option value="lean-tighten">✂️ Lean Editorial Polish (Trim Verbosity, Keep All Ideas)</option>
+                <option value="condense-brief">⚡ Executive Brief (Condense into Summary)</option>
               </select>
             </div>
 
@@ -406,15 +401,6 @@
                 <option value="auto" selected>🤖 Auto (Chunk sections if &gt; 1,400 words)</option>
                 <option value="chunks">🧩 Section-by-Section (Low RAM / 8GB–16GB Laptops)</option>
                 <option value="single-pass">⚡ Whole Document Single-Pass (High VRAM / 32k+)</option>
-              </select>
-            </div>
-
-            <div class="settings-right-col hidden" id="density-control-wrapper">
-              <label for="density-selector" class="settings-bar-sublabel">Target Budget:</label>
-              <select id="density-selector" class="mode-select-dropdown mode-select-sm">
-                <option value="dense">Dense (45% words)</option>
-                <option value="balanced" selected>Balanced (60% words)</option>
-                <option value="narrative">Narrative (75% words)</option>
               </select>
             </div>
           </div>
