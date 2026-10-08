@@ -12,20 +12,26 @@
 
 You can run Stop Slop directly in your browser as an installable **Progressive Web App (PWA)**:
 
-👉 **[Launch Live Web App](https://professorgeorge.github.io/stop-slop/)** *(Replace with your GitHub repository URL)*
+👉 **[Launch Live Web App](https://professorgeorge.github.io/stop-slop/)**
 
-### Features
-* **4-Pass Cognitive Stepper**: Visualizes the transformation from raw substance to author-conditioned draft and voice audit.
-* **Multi-Engine Connector**:
-  * 🌐 **In-Browser WebLLM**: Uses WebGPU via `@mlc-ai/web-llm` for 100% private, zero-install, zero-API-key local inference directly in the browser (supports Llama 3.2 1B/3B, SmolLM2, Qwen 2.5).
-  * 🦙 **Local Ollama**: Connects to `http://localhost:11434` with auto-detection of your downloaded models (`llama3.2`, `gemma4`, `deepseek-r1`, `mistral`, etc.) and pre-configured CORS guidance.
-  * 🌟 **Google Gemini API**: Native client-side support for `gemini-2.0-flash`, `gemini-2.5-flash`, `gemini-1.5-flash`, and `gemini-1.5-pro` with key validation and safety recovery.
-  * ✨ **Chrome Nano**: Experimental Prompt API (`window.ai`) for on-device Gemini Nano.
-  * ⚡ **Cloud APIs & Presets**: Direct integration with **Groq**, **OpenAI**, **OpenRouter**, or **DeepSeek** with interactive connection testing.
-  * ⚡ **Demo Simulation**: Immediate offline demonstration mode with scholarly and engineering presets.
-* **Author Persona Modeling**: Pre-calibrated archetypes (*Scholarly Researcher*, *Systems Engineer*, *Executive Decision-Maker*, *Candid Essayist*, *Warm Mentor*) + **"Extract My Voice"** tool that infers an Author Card from your past writing.
-* **Interactive Diff & Stylometrics**: Live Type-Token Ratio (TTR) gauge, sentence length burstiness (SD), and a detailed linter audit.
-* **Installable PWA**: Install to Windows, macOS, Android, or iOS for one-click desktop access with offline shell caching.
+---
+
+## 🧩 Chrome Extension (Right-Click Humanization Anywhere)
+
+Stop-Slop also includes a dedicated **Manifest V3 Chrome Extension**:
+Select any text $\to$ Right-Click $\to$ **"Stop-Slop: Humanize Selection"** (or press `Alt + H`)!
+
+* **In-Page Floating HUD (Shadow DOM Protected)**: Shows the humanized rewrite directly beside your selection with zero CSS conflicts with host websites.
+* **1-Click In-Place Replacement**: Replaces selected text directly in Gmail, Google Docs, Notion, Slack, Reddit, Word Online, or form textareas.
+* **Instant 0ms Deterministic Clean**: Runs offline in 0.5ms with zero LLM requirements, purging em-dashes, nominalizations, throat-clearing, and tricolons.
+* **Local & Cloud Model Support**: Works seamlessly with local **Ollama** (`http://localhost:11434`), **Google Gemini**, or **OpenAI / Groq**.
+* **Toolbar Scratchpad**: Click the toolbar icon to quickly paste and humanize drafts on the fly.
+
+### Install Extension in 10 Seconds:
+1. Open Chrome and go to `chrome://extensions/`.
+2. Toggle on **Developer mode** in the top-right corner.
+3. Click **Load unpacked** and select the [`extension`](file:///c:/Users/babug/.gemini/antigravity-ide/scratch/stop-slop/extension) folder from this repository.
+4. Highlight any text on any page and press **Alt + H** or right-click!
 
 ---
 

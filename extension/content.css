@@ -1,0 +1,7 @@
+/* Stop-Slop Content Styles */
+#stop-slop-hud-host {
+  all: initial;
+  position: absolute;
+  z-index: 2147483647;
+  pointer-events: auto;
+}

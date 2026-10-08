@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stop-Slop</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo-group">
+        <span class="logo-icon">🚫</span>
+        <div>
+          <h1 class="logo-title">Stop-Slop</h1>
+          <span class="logo-subtitle">Human Prose Restorer</span>
+        </div>
+      </div>
+      <div class="shortcut-badge" title="Shortcut to humanize selection">Alt + H</div>
+    </header>
+
+    <!-- Impact Stats Bar -->
+    <div class="stats-bar">
+      <div class="stat-item">
+        <span class="stat-value" id="stat-words">0</span>
+        <span class="stat-label">Words Sanitized</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-value" id="stat-tells">0</span>
+        <span class="stat-label">AI Tells Excised</span>
+      </div>
+    </div>
+
+    <!-- Quick Humanize Scratchpad -->
+    <section class="section">
+      <div class="section-header">
+        <label for="input-text">Quick Scratchpad</label>
+        <button id="clear-btn" class="btn-link">Clear</button>
+      </div>
+      <textarea id="input-text" placeholder="Paste or type synthetic AI prose here to humanize instantly..."></textarea>
+      
+      <div class="action-row">
+        <div class="voice-picker-group">
+          <select id="voice-select">
+            <option value="george-orwell">🖋️ Plain English (Orwell)</option>
+            <option value="systems-engineer">🛠️ Systems Engineer</option>
+            <option value="scholarly-researcher">🎓 Academic Empirical</option>
+            <option value="bertrand-russell">📜 Bertrand Russell</option>
+            <option value="ursula-le-guin">🌾 Humane Essayist (Le Guin)</option>
+            <option value="claude-shannon">📡 Information Engineer (Shannon)</option>
+          </select>
+        </div>
+        <button id="humanize-btn" class="btn btn-primary">
+          <span id="btn-text">⚡ Humanize</span>
+          <span id="btn-spinner" class="spinner hidden"></span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Output Section (Hidden by default until processed) -->
+    <section id="output-section" class="section hidden">
+      <div class="section-header">
+        <div class="score-pills">
+          <span class="pill pill-good" id="score-pill">Score: 98/100</span>
+          <span class="pill" id="pruned-pill">0 Tells Pruned</span>
+        </div>
+        <button id="copy-btn" class="btn btn-sm btn-secondary">Copy</button>
+      </div>
+      <div id="output-text" class="output-box" tabindex="0"></div>
+    </section>
+
+    <!-- Engine & Settings Accordion -->
+    <section class="section settings-section">
+      <details id="settings-details">
+        <summary>⚙️ Engine & API Settings</summary>
+        <div class="settings-body">
+          <div class="form-group">
+            <label for="provider-select">Processing Engine:</label>
+            <select id="provider-select">
+              <option value="instant">✂️ Instant Deterministic (0ms, 100% Offline)</option>
+              <option value="ollama">🦙 Ollama Local (http://localhost:11434)</option>
+              <option value="gemini">⚡ Google Gemini API</option>
+              <option value="openai">🤖 OpenAI API</option>
+              <option value="groq">🚀 Groq API (Ultra-fast)</option>
+            </select>
+          </div>
+
+          <!-- Ollama settings -->
+          <div id="ollama-config" class="config-panel hidden">
+            <div class="form-group">
+              <label for="ollama-endpoint">Ollama Endpoint:</label>
+              <input type="text" id="ollama-endpoint" value="http://localhost:11434">
+            </div>
+            <div class="form-group">
+              <label for="ollama-model">Model Name:</label>
+              <input type="text" id="ollama-model" value="llama3.2" placeholder="e.g. llama3.2, qwen2.5:14b">
+            </div>
+          </div>
+
+          <!-- Gemini settings -->
+          <div id="gemini-config" class="config-panel hidden">
+            <div class="form-group">
+              <label for="gemini-key">Gemini API Key:</label>
+              <input type="password" id="gemini-key" placeholder="AIzaSy...">
+            </div>
+          </div>
+
+          <!-- OpenAI settings -->
+          <div id="openai-config" class="config-panel hidden">
+            <div class="form-group">
+              <label for="openai-key">OpenAI API Key:</label>
+              <input type="password" id="openai-key" placeholder="sk-...">
+            </div>
+            <div class="form-group">
+              <label for="openai-model">Model:</label>
+              <input type="text" id="openai-model" value="gpt-4o-mini">
+            </div>
+          </div>
+
+          <!-- Groq settings -->
+          <div id="groq-config" class="config-panel hidden">
+            <div class="form-group">
+              <label for="groq-key">Groq API Key:</label>
+              <input type="password" id="groq-key" placeholder="gsk_...">
+            </div>
+          </div>
+
+          <button id="save-settings-btn" class="btn btn-sm btn-primary">Save Settings</button>
+          <span id="save-msg" class="save-msg hidden">Saved!</span>
+        </div>
+      </details>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <span>Right-click any selected text on any webpage to humanize!</span>
+    </footer>
+  </div>
+
+  <script src="popup.js" type="module"></script>
+</body>
+</html>
