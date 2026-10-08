@@ -1,11 +1,11 @@
 {
-  "name": "Stop Slop — Cognitive Writing Studio",
+  "name": "Stop Slop: Cognitive Writing Studio",
   "short_name": "StopSlop",
   "description": "Transform AI-isms into authentic human prose with author persona modeling and a 4-pass cognitive engine.",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#0B0F19",
-  "theme_color": "#0B0F19",
+  "background_color": "#0C0B0A",
+  "theme_color": "#0C0B0A",
   "orientation": "any",
   "icons": [
     {

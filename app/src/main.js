@@ -537,7 +537,7 @@ function renderModernArchetypes() {
 
 function openExcerptModal(persona) {
   state.activeModalPersona = persona;
-  excerptModalTitle.textContent = `${persona.name} — Authentic Pre-AI Writing`;
+  excerptModalTitle.textContent = `${persona.name}: Authentic Pre-AI Writing`;
   excerptAuthorName.textContent = persona.name;
   excerptEra.textContent = persona.era;
   excerptDomain.textContent = persona.domain;

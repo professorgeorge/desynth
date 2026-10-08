@@ -70,7 +70,14 @@ export function amputateSlop(text) {
     clean = clean.replace(regex, replace);
   }
 
-  // 3. Clean up sentence punctuation debris left behind by deletions
+  // 3. Purge artificial AI em-dashes (— and --), replacing with natural punctuation or clean pauses
+  // LLMs notoriously overuse em-dashes for sentence-padding and fake profundity.
+  clean = clean
+    .replace(/\s*—\s*/g, ', ')
+    .replace(/\s*--\s*/g, ', ')
+    .replace(/,\s*,/g, ',');
+
+  // 4. Clean up sentence punctuation debris left behind by deletions
   clean = clean
     // Capitalize first letter of sentences if throat-clearing was at sentence start
     .replace(/(^[a-z]|(?<=[.!?]\s+)[a-z])/g, m => m.toUpperCase())
@@ -94,7 +101,7 @@ export function amputateSlop(text) {
  */
 
 /**
- * Extracts 3–5 representative syntactic sentence frames from human writing.
+ * Extracts 3 to 5 representative syntactic sentence frames from human writing.
  * @param {string} sampleText - Authentic author sample
  * @returns {Array<string>} List of human grammatical skeletons
  */
@@ -112,14 +119,15 @@ export function extractSyntacticFrames(sampleText) {
     return getDefaultFrames();
   }
 
-  // Prioritize sentences with human structural markers (em-dashes, semicolons, causal clauses, asides)
+  // Prioritize sentences with human structural markers (semicolons, causal clauses, asides)
+  // while actively penalizing em-dashes as artificial AI slop
   const ranked = sentences.map(s => {
     let score = 0;
-    if (/[—]/.test(s)) score += 4;
-    if (/;/.test(s)) score += 3;
+    if (/;/.test(s)) score += 4;
     if (/\([^)]+\)/.test(s)) score += 3;
     if (/\b(?:when|because|if|though|unless|while)\b/i.test(s)) score += 2;
     if (/\b(?:not because|merely|only|rather|instead)\b/i.test(s)) score += 2;
+    if (/[—]/.test(s)) score -= 3; // Penalize em-dash slop
     const wordCount = s.split(/\s+/).length;
     // Prefer medium to long complex sentences for grafting molds
     if (wordCount >= 14 && wordCount <= 38) score += 2;
@@ -134,7 +142,7 @@ export function extractSyntacticFrames(sampleText) {
 
 function getDefaultFrames() {
   return [
-    'When we examine [fact], the primary obstacle is rarely [misconception]—it is [underlying mechanism].',
+    'When we examine [fact], the primary obstacle is rarely [misconception]; it is [underlying mechanism].',
     'The system failed not because of [secondary factor], but because [root cause] overwhelmed [constraint].',
     'Separating [component A] from [component B] reduced latency from [metric 1] to [metric 2], leaving [outcome].',
     'If we assume [premise], we inevitably run into [trade-off]; the alternative is [concrete resolution].'
