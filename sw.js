@@ -36,6 +36,10 @@ self.addEventListener('fetch', (event) => {
     url.hostname.includes('openai.com') ||
     url.hostname.includes('anthropic.com') ||
     url.hostname.includes('groq.com') ||
+    url.hostname.includes('openrouter.ai') ||
+    url.hostname.includes('deepseek.com') ||
+    url.hostname.includes('huggingface.co') ||
+    url.hostname.includes('mlc.ai') ||
     url.hostname.includes('localhost') ||
     url.hostname.includes('127.0.0.1')
   ) {
