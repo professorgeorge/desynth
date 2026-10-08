@@ -36,7 +36,8 @@ const STORAGE_KEYS = {
   openaiModel: 'stop_slop_openai_model',
   customPersona: 'stop_slop_custom_persona',
   customPersonas: 'stop_slop_custom_personas',
-  activePersonaId: 'stop_slop_active_persona_id'
+  activePersonaId: 'stop_slop_active_persona_id',
+  theme: 'stop_slop_theme'
 };
 
 // Cloud provider presets
@@ -113,6 +114,7 @@ const state = {
   customPersona: savedCustomPersonas[0] || null,
   activeVoiceFilter: 'all',
   activeResultTab: 'rewrite',
+  theme: localStorage.getItem('stop_slop_theme') || 'dark',
   activeProvider: localStorage.getItem(STORAGE_KEYS.provider) || 'demo',
   providerConfigs: {
     demo: {},
@@ -337,8 +339,40 @@ const stage2EngineBtn = document.getElementById('stage2-engine-btn');
 const stage2EngineDot = document.getElementById('stage2-engine-dot');
 const stage2EngineLabel = document.getElementById('stage2-engine-label');
 
+// Theme Toggle Elements
+const themeToggleBtn = document.getElementById('theme-toggle-btn');
+const themeIconSun = document.getElementById('theme-icon-sun');
+const themeIconMoon = document.getElementById('theme-icon-moon');
+const themeToggleLabel = document.getElementById('theme-toggle-label');
+
+function applyTheme(theme, save = true) {
+  state.theme = theme;
+  if (save) {
+    localStorage.setItem(STORAGE_KEYS.theme, theme);
+  }
+  const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+  if (theme === 'light') {
+    document.body.classList.remove('dark-theme');
+    document.body.classList.add('light-theme');
+    if (themeIconSun) themeIconSun.classList.remove('hidden');
+    if (themeIconMoon) themeIconMoon.classList.add('hidden');
+    if (themeToggleLabel) themeToggleLabel.textContent = 'Night Mode';
+    if (themeToggleBtn) themeToggleBtn.title = 'Switch to Night Mode (Warm Obsidian)';
+    if (metaThemeColor) metaThemeColor.setAttribute('content', '#F8F5EE');
+  } else {
+    document.body.classList.remove('light-theme');
+    document.body.classList.add('dark-theme');
+    if (themeIconSun) themeIconSun.classList.add('hidden');
+    if (themeIconMoon) themeIconMoon.classList.remove('hidden');
+    if (themeToggleLabel) themeToggleLabel.textContent = 'Day Mode';
+    if (themeToggleBtn) themeToggleBtn.title = 'Switch to Day Mode (Editorial Paper & Ink)';
+    if (metaThemeColor) metaThemeColor.setAttribute('content', '#0C0B0A');
+  }
+}
+
 // --- Initialization ---
 function init() {
+  applyTheme(state.theme, false);
   renderPresetSelector();
   renderClassicMasters();
   renderModernArchetypes();
@@ -1378,6 +1412,14 @@ async function checkChromeAIStatus() {
 // --- Event Listeners Setup ---
 
 function setupEventListeners() {
+  // Theme Toggle (Day / Night Mode)
+  if (themeToggleBtn) {
+    themeToggleBtn.addEventListener('click', () => {
+      const nextTheme = state.theme === 'light' ? 'dark' : 'light';
+      applyTheme(nextTheme);
+    });
+  }
+
   // Global Home Navigation (Return to Stage 1 from anywhere)
   if (brandHomeBtn) {
     brandHomeBtn.addEventListener('click', goHome);

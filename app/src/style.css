@@ -2088,3 +2088,300 @@ body {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+
+/* Theme Toggle Button */
+.theme-toggle-btn {
+  background: rgba(226, 135, 67, 0.12);
+  color: var(--accent-amber);
+  border: 1px solid rgba(226, 135, 67, 0.3);
+}
+
+.theme-toggle-btn:hover {
+  background: rgba(226, 135, 67, 0.22);
+  box-shadow: 0 0 12px rgba(226, 135, 67, 0.3);
+  color: var(--accent-amber);
+}
+
+.theme-icon {
+  display: block;
+}
+
+/* ==========================================================================
+   DAY / LIGHT THEME: EDITORIAL LETTERPRESS & WARM INK
+   ========================================================================== */
+
+body.light-theme {
+  --bg-primary: #F8F5EE;
+  --bg-surface: #FFFFFF;
+  --bg-surface-elevated: #F1ECE1;
+  --bg-input: #FFFFFF;
+
+  --border-subtle: rgba(70, 50, 30, 0.12);
+  --border-focus: #C86928;
+  --border-accent: rgba(200, 105, 40, 0.45);
+
+  --text-primary: #1F1B18;
+  --text-secondary: #5C5248;
+  --text-muted: #8E8274;
+
+  --accent-cyan: #BA4E33;
+  --accent-blue: #C86928;
+  --accent-violet: #A25B3E;
+  --accent-green: #2B7A5D;
+  --accent-amber: #C86928;
+  --accent-rose: #B83A4B;
+
+  --grad-brand: linear-gradient(135deg, #C86928 0%, #BA4E33 50%, #8F341F 100%);
+  --grad-accent: linear-gradient(135deg, #2B7A5D 0%, #C86928 100%);
+  --grad-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(247, 242, 235, 0.98) 100%);
+
+  --shadow-glow-cyan: 0 4px 18px -2px rgba(200, 105, 40, 0.18);
+  --shadow-glow-violet: 0 4px 18px -2px rgba(186, 78, 51, 0.18);
+  --shadow-card: 0 4px 20px -2px rgba(60, 45, 30, 0.08), 0 1px 4px rgba(60, 45, 30, 0.04);
+
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  background-image: 
+    radial-gradient(circle at 15% 10%, rgba(200, 105, 40, 0.05) 0%, transparent 40%),
+    radial-gradient(circle at 85% 90%, rgba(186, 78, 51, 0.05) 0%, transparent 45%);
+}
+
+body.light-theme .app-header {
+  background: rgba(248, 245, 238, 0.94);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+body.light-theme .workflow-stepper-bar {
+  background: rgba(242, 237, 227, 0.92);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+body.light-theme .engine-badge-group,
+body.light-theme .voice-badge-group {
+  background: rgba(238, 232, 222, 0.9);
+  border: 1px solid var(--border-subtle);
+}
+
+body.light-theme .engine-badge-btn {
+  background: #FFFFFF;
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+}
+
+body.light-theme .engine-badge-btn:hover {
+  background: #FDF9F2;
+  border-color: var(--border-accent);
+}
+
+body.light-theme .stage-nav-item {
+  background: #FFFFFF;
+  border-color: var(--border-subtle);
+  box-shadow: 0 1px 4px rgba(60, 45, 30, 0.06);
+}
+
+body.light-theme .stage-nav-item.active {
+  background: #FFFFFF;
+  border-color: var(--accent-blue);
+  box-shadow: 0 4px 14px rgba(200, 105, 40, 0.12);
+}
+
+body.light-theme .stage-num-badge {
+  background: #EFE9DC;
+  color: var(--text-primary);
+}
+
+body.light-theme .stage-nav-item.active .stage-num-badge {
+  background: var(--accent-blue);
+  color: #FFFFFF;
+}
+
+body.light-theme .card,
+body.light-theme .analysis-card,
+body.light-theme .stage-card,
+body.light-theme .modal-card,
+body.light-theme .panel-card,
+body.light-theme .editor-container,
+body.light-theme .step-details-drawer {
+  background: #FFFFFF;
+  border-color: var(--border-subtle);
+  box-shadow: var(--shadow-card);
+}
+
+body.light-theme .persona-card,
+body.light-theme .voice-choice-card {
+  background: #FFFFFF;
+  border-color: var(--border-subtle);
+  box-shadow: 0 1px 4px rgba(60, 45, 30, 0.05);
+}
+
+body.light-theme .persona-card:hover,
+body.light-theme .voice-choice-card:hover {
+  border-color: var(--border-accent);
+  background: #FFFDF9;
+  box-shadow: 0 6px 18px rgba(60, 45, 30, 0.08);
+}
+
+body.light-theme .persona-card.active,
+body.light-theme .voice-choice-card.active {
+  border-color: var(--accent-blue);
+  background: #FFFDF9;
+  box-shadow: 0 0 16px rgba(200, 105, 40, 0.2);
+}
+
+body.light-theme .voice-choice-card.personal-card {
+  border-color: rgba(186, 78, 51, 0.35);
+  background: linear-gradient(145deg, #FFF9F5 0%, #FFFFFF 100%);
+}
+
+body.light-theme .audit-metric-box {
+  background: #F8F4EC;
+  border-color: var(--border-subtle);
+}
+
+body.light-theme .audit-metric-val {
+  color: var(--accent-blue);
+}
+
+body.light-theme .audit-dist-bar {
+  background: #E8E1D2;
+}
+
+body.light-theme .slop-item {
+  background: #FDF9F2;
+  border-color: var(--border-subtle);
+}
+
+body.light-theme .slop-item:hover {
+  background: #FAF3E6;
+}
+
+body.light-theme .tab-pill {
+  background: #EFE9DC;
+  color: var(--text-secondary);
+}
+
+body.light-theme .tab-pill.active {
+  background: #FFFFFF;
+  color: var(--accent-blue);
+  border-color: var(--border-subtle);
+  box-shadow: 0 2px 8px rgba(60, 45, 30, 0.08);
+}
+
+body.light-theme .tab-pill:hover:not(.active) {
+  background: #E6DFCE;
+}
+
+body.light-theme .voice-modal-tab {
+  background: #EFE9DC;
+  color: var(--text-secondary);
+  border-color: var(--border-subtle);
+}
+
+body.light-theme .voice-modal-tab.active {
+  background: rgba(200, 105, 40, 0.15);
+  color: var(--accent-blue);
+  border-color: var(--accent-blue);
+}
+
+body.light-theme .output-prose-box,
+body.light-theme .diff-panel-content,
+body.light-theme .claims-content-box,
+body.light-theme .syntax-frames-box {
+  background: #FAF8F4;
+  border-color: var(--border-subtle);
+  color: var(--text-primary);
+}
+
+body.light-theme .diff-ins {
+  background: rgba(43, 122, 93, 0.12);
+  color: #154D38;
+}
+
+body.light-theme .diff-del {
+  background: rgba(184, 58, 75, 0.12);
+  color: #87202E;
+}
+
+body.light-theme .form-input,
+body.light-theme .editor-textarea,
+body.light-theme .text-area-custom {
+  background: #FFFFFF;
+  color: var(--text-primary);
+  border-color: var(--border-subtle);
+}
+
+body.light-theme .form-input:focus,
+body.light-theme .editor-textarea:focus,
+body.light-theme .text-area-custom:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(200, 105, 40, 0.15);
+}
+
+body.light-theme .engine-card {
+  background: #FFFFFF;
+  border-color: var(--border-subtle);
+}
+
+body.light-theme .engine-card:hover {
+  border-color: var(--border-accent);
+}
+
+body.light-theme .engine-card.active {
+  border-color: var(--accent-blue);
+  background: #FFFDF9;
+}
+
+body.light-theme .modal-overlay {
+  background: rgba(40, 30, 20, 0.45);
+  backdrop-filter: blur(8px);
+}
+
+body.light-theme .theme-toggle-btn {
+  background: rgba(200, 105, 40, 0.12);
+  color: var(--accent-blue);
+  border-color: rgba(200, 105, 40, 0.3);
+}
+
+body.light-theme .theme-toggle-btn:hover {
+  background: rgba(200, 105, 40, 0.22);
+  box-shadow: 0 0 12px rgba(200, 105, 40, 0.25);
+  color: var(--accent-blue);
+}
+
+body.light-theme .btn-secondary {
+  background: #EFE9DC;
+  color: var(--text-primary);
+  border-color: var(--border-subtle);
+}
+
+body.light-theme .btn-secondary:hover {
+  background: #E6DFCE;
+  border-color: var(--border-focus);
+}
+
+body.light-theme .drop-zone {
+  background: #FDFBF7;
+  border-color: var(--border-subtle);
+}
+
+body.light-theme .drop-zone:hover,
+body.light-theme .drop-zone.dragover {
+  background: #FFF9F2;
+  border-color: var(--accent-blue);
+}
+
+body.light-theme .author-status-msg {
+  background: rgba(43, 122, 93, 0.1);
+  color: #1A543E;
+  border-color: rgba(43, 122, 93, 0.25);
+}
+
+body.light-theme .surgery-summary-card {
+  background: #FFFDF9;
+  border-color: var(--border-subtle);
+}
+
+body.light-theme .brand-subtitle {
+  color: var(--text-secondary);
+}
