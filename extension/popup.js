@@ -1,4 +1,5 @@
-// Stop-Slop Extension Popup Logic
+// Desynth Extension Popup Logic
+import { fetchOllamaModels, detectChromeAI } from './engine/llm-service.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
   const inputText = document.getElementById('input-text');
@@ -23,14 +24,37 @@ document.addEventListener('DOMContentLoaded', async () => {
   const statWords = document.getElementById('stat-words');
   const statTells = document.getElementById('stat-tells');
 
+  const statusBanner = document.getElementById('status-banner');
   const providerSelect = document.getElementById('provider-select');
+  
+  // Config Panels
   const ollamaConfig = document.getElementById('ollama-config');
+  const chromeAiConfig = document.getElementById('chrome-ai-config');
+  const webllmConfig = document.getElementById('webllm-config');
   const geminiConfig = document.getElementById('gemini-config');
   const openaiConfig = document.getElementById('openai-config');
   const groqConfig = document.getElementById('groq-config');
 
+  // Ollama Inputs & Actions
   const ollamaEndpoint = document.getElementById('ollama-endpoint');
+  const ollamaModelSelect = document.getElementById('ollama-model-select');
   const ollamaModel = document.getElementById('ollama-model');
+  const ollamaDetectBtn = document.getElementById('ollama-detect-btn');
+  const ollamaTestBtn = document.getElementById('ollama-test-btn');
+  const ollamaStatusBadge = document.getElementById('ollama-status-badge');
+
+  // Chrome AI Inputs & Actions
+  const chromeAiStatus = document.getElementById('chrome-ai-status');
+  const chromeAiTestBtn = document.getElementById('chrome-ai-test-btn');
+  const chromeAiHelp = document.getElementById('chrome-ai-help');
+
+  // WebLLM Inputs & Actions
+  const webllmEndpoint = document.getElementById('webllm-endpoint');
+  const webllmModel = document.getElementById('webllm-model');
+  const webllmTestBtn = document.getElementById('webllm-test-btn');
+  const webllmStatusBadge = document.getElementById('webllm-status-badge');
+
+  // Cloud API Inputs
   const geminiKey = document.getElementById('gemini-key');
   const openaiKey = document.getElementById('openai-key');
   const openaiModel = document.getElementById('openai-model');
@@ -57,6 +81,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     'customVoices',
     'ollamaEndpoint',
     'ollamaModel',
+    'webllmEndpoint',
+    'webllmModel',
     'geminiApiKey',
     'openaiApiKey',
     'openaiModel',
@@ -111,7 +137,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (storage.defaultVoice) voiceSelect.value = storage.defaultVoice;
   if (storage.provider) providerSelect.value = storage.provider;
   if (storage.ollamaEndpoint) ollamaEndpoint.value = storage.ollamaEndpoint;
-  if (storage.ollamaModel) ollamaModel.value = storage.ollamaModel;
+  if (storage.ollamaModel) {
+    ollamaModel.value = storage.ollamaModel;
+  }
+  if (storage.webllmEndpoint) webllmEndpoint.value = storage.webllmEndpoint;
+  if (storage.webllmModel) webllmModel.value = storage.webllmModel;
   if (storage.geminiApiKey) geminiKey.value = storage.geminiApiKey;
   if (storage.openaiApiKey) openaiKey.value = storage.openaiApiKey;
   if (storage.openaiModel) openaiModel.value = storage.openaiModel;
@@ -123,13 +153,198 @@ document.addEventListener('DOMContentLoaded', async () => {
   function updateConfigPanels() {
     const val = providerSelect.value;
     ollamaConfig.classList.toggle('hidden', val !== 'ollama');
+    chromeAiConfig.classList.toggle('hidden', val !== 'chrome-ai');
+    webllmConfig.classList.toggle('hidden', val !== 'webllm');
     geminiConfig.classList.toggle('hidden', val !== 'gemini');
     openaiConfig.classList.toggle('hidden', val !== 'openai');
     groqConfig.classList.toggle('hidden', val !== 'groq');
+
+    if (val === 'ollama') detectOllama();
+    if (val === 'chrome-ai') updateChromeAIStatus();
   }
 
   providerSelect.addEventListener('change', updateConfigPanels);
   updateConfigPanels();
+
+  // Banner Helper
+  function showBanner(message, type = 'error') {
+    statusBanner.textContent = message;
+    statusBanner.className = `status-banner ${type === 'info' ? 'banner-info' : type === 'success' ? 'banner-success' : ''}`;
+    statusBanner.classList.remove('hidden');
+  }
+
+  function hideBanner() {
+    statusBanner.classList.add('hidden');
+  }
+
+  // --- Ollama Detection & Test ---
+  async function detectOllama(silent = false) {
+    try {
+      if (!silent) {
+        ollamaStatusBadge.textContent = '🔄 Scanning 127.0.0.1:11434 & localhost...';
+        ollamaStatusBadge.className = 'engine-status-badge';
+        ollamaStatusBadge.classList.remove('hidden');
+      }
+
+      const endpoint = ollamaEndpoint.value.trim() || 'http://127.0.0.1:11434';
+      const result = await fetchOllamaModels(endpoint);
+
+      if (result && result.models && result.models.length > 0) {
+        ollamaEndpoint.value = result.workingEndpoint;
+        ollamaModelSelect.innerHTML = '';
+        result.models.forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m;
+          opt.textContent = m;
+          ollamaModelSelect.appendChild(opt);
+        });
+
+        // Match existing value or select first model
+        const currentM = ollamaModel.value.trim();
+        if (result.models.includes(currentM)) {
+          ollamaModelSelect.value = currentM;
+        } else if (result.models.includes(currentM + ':latest')) {
+          ollamaModelSelect.value = currentM + ':latest';
+          ollamaModel.value = currentM + ':latest';
+        } else {
+          ollamaModelSelect.value = result.models[0];
+          ollamaModel.value = result.models[0];
+        }
+
+        ollamaStatusBadge.textContent = `✅ Connected (${result.workingEndpoint}): ${result.models.length} model(s) ready`;
+        ollamaStatusBadge.className = 'engine-status-badge status-ok';
+        ollamaStatusBadge.classList.remove('hidden');
+
+        await chrome.storage.local.set({
+          ollamaEndpoint: result.workingEndpoint,
+          ollamaModel: ollamaModel.value
+        });
+      } else {
+        ollamaStatusBadge.textContent = '⚠️ Ollama reached, but no models downloaded yet.';
+        ollamaStatusBadge.className = 'engine-status-badge status-err';
+        ollamaStatusBadge.classList.remove('hidden');
+      }
+    } catch (err) {
+      if (!silent) {
+        ollamaStatusBadge.textContent = `⚠️ Cannot reach Ollama: ${err.message}`;
+        ollamaStatusBadge.className = 'engine-status-badge status-err';
+        ollamaStatusBadge.classList.remove('hidden');
+      }
+    }
+  }
+
+  ollamaModelSelect.addEventListener('change', () => {
+    ollamaModel.value = ollamaModelSelect.value;
+  });
+
+  ollamaDetectBtn.addEventListener('click', () => detectOllama(false));
+
+  ollamaTestBtn.addEventListener('click', async () => {
+    const base = (ollamaEndpoint.value.trim() || 'http://127.0.0.1:11434').replace(/\/+$/, '');
+    const model = ollamaModel.value.trim() || 'llama3.2';
+    ollamaStatusBadge.textContent = `⚡ Testing ping to ${model}...`;
+    ollamaStatusBadge.className = 'engine-status-badge';
+    ollamaStatusBadge.classList.remove('hidden');
+
+    try {
+      const start = performance.now();
+      const res = await fetch(`${base}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: 'Say "Ready" in one word.' }],
+          stream: false
+        })
+      });
+
+      if (!res.ok) {
+        const txt = await res.text().catch(() => '');
+        throw new Error(`HTTP ${res.status}: ${txt}`);
+      }
+
+      const json = await res.json();
+      const latency = Math.round(performance.now() - start);
+      const reply = json.message?.content?.trim() || 'OK';
+      ollamaStatusBadge.textContent = `✅ Ping Success (${latency}ms)! "${reply}"`;
+      ollamaStatusBadge.className = 'engine-status-badge status-ok';
+    } catch (err) {
+      ollamaStatusBadge.textContent = `❌ Test Failed: ${err.message}`;
+      ollamaStatusBadge.className = 'engine-status-badge status-err';
+    }
+  });
+
+  // --- Chrome Built-in AI (Gemini Nano) ---
+  function updateChromeAIStatus() {
+    const check = detectChromeAI();
+    if (check.supported) {
+      chromeAiStatus.textContent = '✅ Gemini Nano Detected & Ready';
+      chromeAiStatus.className = 'engine-status-badge status-ok';
+      chromeAiHelp.classList.add('hidden');
+    } else {
+      chromeAiStatus.textContent = '⚠️ Not Enabled in Chrome';
+      chromeAiStatus.className = 'engine-status-badge status-err';
+      chromeAiHelp.classList.remove('hidden');
+    }
+  }
+
+  chromeAiTestBtn.addEventListener('click', async () => {
+    const check = detectChromeAI();
+    if (!check.supported || !check.api) {
+      alert('Chrome Built-in AI is not enabled. Follow the instructions below to enable it in chrome://flags.');
+      return;
+    }
+
+    chromeAiStatus.textContent = '⚡ Testing on-device prompt...';
+    try {
+      const session = await check.api.create({
+        systemPrompt: 'You are a test assistant. Answer in 1 word.'
+      });
+      const res = await session.prompt('Say "Ready"');
+      session.destroy();
+      chromeAiStatus.textContent = `✅ On-Device AI Active! Replied: "${res.trim()}"`;
+      chromeAiStatus.className = 'engine-status-badge status-ok';
+    } catch (err) {
+      chromeAiStatus.textContent = `❌ Chrome AI Error: ${err.message}`;
+      chromeAiStatus.className = 'engine-status-badge status-err';
+    }
+  });
+
+  // --- WebLLM / Local Server Test ---
+  webllmTestBtn.addEventListener('click', async () => {
+    const base = (webllmEndpoint.value.trim() || 'http://127.0.0.1:8000/v1').replace(/\/+$/, '');
+    const model = webllmModel.value.trim();
+    const url = base.endsWith('/chat/completions') ? base : `${base}/chat/completions`;
+
+    webllmStatusBadge.textContent = `⚡ Pinging ${url}...`;
+    webllmStatusBadge.className = 'engine-status-badge';
+    webllmStatusBadge.classList.remove('hidden');
+
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: 'Say "Ready"' }]
+        })
+      });
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      const reply = json.choices?.[0]?.message?.content?.trim() || 'OK';
+      webllmStatusBadge.textContent = `✅ WebLLM Connected! "${reply}"`;
+      webllmStatusBadge.className = 'engine-status-badge status-ok';
+    } catch (err) {
+      webllmStatusBadge.textContent = `❌ WebLLM Error: ${err.message}`;
+      webllmStatusBadge.className = 'engine-status-badge status-err';
+    }
+  });
+
+  // Auto-detect Ollama immediately on load if provider is ollama or default
+  if (providerSelect.value === 'ollama') {
+    detectOllama(true);
+  }
 
   // Save Settings
   saveSettingsBtn.addEventListener('click', async () => {
@@ -139,6 +354,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       mode: currentMode,
       ollamaEndpoint: ollamaEndpoint.value.trim(),
       ollamaModel: ollamaModel.value.trim(),
+      webllmEndpoint: webllmEndpoint.value.trim(),
+      webllmModel: webllmModel.value.trim(),
       geminiApiKey: geminiKey.value.trim(),
       openaiApiKey: openaiKey.value.trim(),
       openaiModel: openaiModel.value.trim(),
@@ -200,6 +417,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   clearBtn.addEventListener('click', () => {
     inputText.value = '';
     outputSection.classList.add('hidden');
+    hideBanner();
     inputText.focus();
   });
 
@@ -263,6 +481,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
+    hideBanner();
     lastOriginalInput = text;
     isDiffActive = false;
     popupDiffBtn.classList.remove('diff-active');
@@ -273,6 +492,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     btnSpinner.classList.remove('hidden');
 
     try {
+      // Save current choices first
+      await chrome.storage.local.set({
+        defaultVoice: voiceSelect.value,
+        provider: providerSelect.value,
+        mode: currentMode,
+        ollamaEndpoint: ollamaEndpoint.value.trim(),
+        ollamaModel: ollamaModel.value.trim(),
+        webllmEndpoint: webllmEndpoint.value.trim(),
+        webllmModel: webllmModel.value.trim()
+      });
+
       const response = await chrome.runtime.sendMessage({
         action: 'RUN_HUMANIZE',
         text,
@@ -285,6 +515,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         lastRewrittenOutput = response.rewritten;
         outputText.textContent = response.rewritten;
         outputSection.classList.remove('hidden');
+
+        // Check if there was an LLM warning (e.g. fallback triggered)
+        if (response.warning) {
+          showBanner(`⚠️ ${response.warning}`, 'warning');
+        }
 
         const score = response.lintAfter?.score ?? 98;
         scorePill.textContent = `Score: ${score}/100`;
@@ -302,7 +537,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     } catch (err) {
       console.error('Humanize failed in popup:', err);
-      alert('Error humanizing text: ' + err.message);
+      showBanner(`Error: ${err.message}`);
     } finally {
       humanizeBtn.disabled = false;
       btnText.textContent = '⚡ Humanize';

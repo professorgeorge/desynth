@@ -248,11 +248,81 @@ ${text}`;
   };
 }
 
+// Helper to strip <think>...</think> reasoning traces from models like DeepSeek-R1
+function sanitizeModelOutput(text) {
+  if (!text) return '';
+  return text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+}
+
+export function detectChromeAI() {
+  const aiObj = (typeof ai !== 'undefined' && ai?.languageModel) ||
+                (typeof window !== 'undefined' && window.ai?.languageModel) ||
+                (typeof self !== 'undefined' && self.ai?.languageModel) ||
+                (typeof navigator !== 'undefined' && navigator.ai?.languageModel);
+  if (!aiObj) {
+    return { supported: false, status: 'unavailable', message: 'Prompt API not detected in this context' };
+  }
+  return { supported: true, status: 'available', model: 'Gemini Nano (Chrome Built-in)', api: aiObj };
+}
+
+export async function fetchOllamaModels(customEndpoint) {
+  const candidateBases = [];
+  if (customEndpoint && typeof customEndpoint === 'string' && customEndpoint.trim()) {
+    candidateBases.push(customEndpoint.trim().replace(/\/+$/, ''));
+  }
+  // Always include standard IPv4 loopback (Windows Ollama default) and localhost
+  if (!candidateBases.includes('http://127.0.0.1:11434')) candidateBases.push('http://127.0.0.1:11434');
+  if (!candidateBases.includes('http://localhost:11434')) candidateBases.push('http://localhost:11434');
+
+  let lastErr = null;
+  for (const base of candidateBases) {
+    const urls = [`${base}/api/tags`, `${base}/v1/models`];
+    for (const url of urls) {
+      try {
+        const res = await fetch(url, { method: 'GET' });
+        if (res.ok) {
+          const json = await res.json();
+          if (Array.isArray(json.models)) {
+            const models = json.models.map(m => m.name || m.model).filter(Boolean);
+            return { workingEndpoint: base, models };
+          }
+          if (Array.isArray(json.data)) {
+            const models = json.data.map(m => m.id).filter(Boolean);
+            return { workingEndpoint: base, models };
+          }
+        }
+      } catch (err) {
+        lastErr = err;
+      }
+    }
+  }
+
+  throw new Error(`Cannot reach Ollama at 127.0.0.1:11434 or localhost:11434 (${lastErr ? lastErr.message : 'Connection refused'}). Make sure Ollama is running ('ollama serve').`);
+}
+
 async function executeLLMCall({ provider, config, systemPrompt, userPrompt, temperature, top_p }) {
   if (provider === 'ollama') {
     return await callOllama({
-      endpoint: config.ollamaEndpoint || 'http://localhost:11434',
+      endpoint: config.ollamaEndpoint || 'http://127.0.0.1:11434',
       model: config.ollamaModel || 'llama3.2',
+      systemPrompt,
+      userPrompt,
+      temperature,
+      top_p
+    });
+  } else if (provider === 'chrome-ai') {
+    return await callChromeAI({
+      systemPrompt,
+      userPrompt,
+      temperature,
+      top_p,
+      tabId: config.tabId
+    });
+  } else if (provider === 'webllm') {
+    return await callWebLLMOrLocalServer({
+      endpoint: config.webllmEndpoint || 'http://127.0.0.1:8000/v1',
+      model: config.webllmModel || 'Llama-3.2-1B-Instruct-q4f16_1-MLC',
+      apiKey: config.webllmApiKey || 'not-needed',
       systemPrompt,
       userPrompt,
       temperature,
@@ -282,43 +352,175 @@ async function executeLLMCall({ provider, config, systemPrompt, userPrompt, temp
 }
 
 async function callOllama({ endpoint, model, systemPrompt, userPrompt, temperature = 0.62, top_p = 0.93 }) {
-  const base = endpoint.replace(/\/+$/, '');
-  const url = base.endsWith('/v1') ? `${base}/chat/completions` : `${base}/api/chat`;
-  const isV1 = url.endsWith('/chat/completions');
+  const cleanModel = (model || 'llama3.2').trim();
+  const rawBase = (endpoint || 'http://127.0.0.1:11434').trim().replace(/\/+$/, '');
 
-  const body = isV1 ? {
-    model,
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt }
-    ],
-    temperature,
-    top_p,
-    stream: false,
-    options: { temperature, top_p, num_ctx: 16384 }
-  } : {
-    model,
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt }
-    ],
-    stream: false,
-    options: { temperature, top_p, num_ctx: 16384 }
-  };
+  // Build candidate bases to handle Windows IPv4 vs IPv6 loopback
+  const candidateBases = [rawBase];
+  if (rawBase.includes('localhost:11434') && !candidateBases.includes('http://127.0.0.1:11434')) {
+    candidateBases.push('http://127.0.0.1:11434');
+  }
+  if (rawBase.includes('127.0.0.1:11434') && !candidateBases.includes('http://localhost:11434')) {
+    candidateBases.push('http://localhost:11434');
+  }
+
+  // Model name variants (e.g. "llama3.2" and "llama3.2:latest")
+  const modelCandidates = [cleanModel];
+  if (!cleanModel.includes(':')) {
+    modelCandidates.push(`${cleanModel}:latest`);
+  } else if (cleanModel.endsWith(':latest')) {
+    modelCandidates.push(cleanModel.replace(/:latest$/, ''));
+  }
+
+  let lastError = null;
+
+  for (const base of candidateBases) {
+    for (const m of modelCandidates) {
+      // Try /api/chat route
+      try {
+        const res = await fetch(`${base}/api/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: m,
+            messages: [
+              ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+              { role: 'user', content: userPrompt }
+            ],
+            stream: false,
+            options: {
+              temperature,
+              top_p,
+              num_ctx: 16384
+            }
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const content = data.message?.content;
+          if (content) return sanitizeModelOutput(content);
+        } else if (res.status !== 404) {
+          const errText = await res.text().catch(() => '');
+          lastError = new Error(`Ollama HTTP ${res.status}: ${errText}`);
+        }
+      } catch (err) {
+        lastError = err;
+      }
+
+      // Try OpenAI-compatible /v1/chat/completions route on Ollama
+      try {
+        const v1Url = base.endsWith('/v1') ? `${base}/chat/completions` : `${base}/v1/chat/completions`;
+        const res = await fetch(v1Url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: m,
+            messages: [
+              ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+              { role: 'user', content: userPrompt }
+            ],
+            temperature,
+            top_p,
+            stream: false
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const content = data.choices?.[0]?.message?.content;
+          if (content) return sanitizeModelOutput(content);
+        } else if (res.status !== 404) {
+          const errText = await res.text().catch(() => '');
+          lastError = new Error(`Ollama HTTP ${res.status}: ${errText}`);
+        }
+      } catch (err) {
+        lastError = err;
+      }
+    }
+  }
+
+  throw new Error(
+    `Failed to connect to Ollama (${cleanModel}) at ${rawBase}. ` +
+    `Ensure Ollama is running ('ollama serve') and model is installed ('ollama run ${cleanModel}'). ` +
+    `Error details: ${lastError ? lastError.message : 'Unreachable'}`
+  );
+}
+
+async function callChromeAI({ systemPrompt, userPrompt, temperature, top_p, tabId }) {
+  const detection = detectChromeAI();
+  if (detection.supported && detection.api) {
+    const aiObj = detection.api;
+    let session = null;
+    try {
+      session = await aiObj.create({
+        systemPrompt: systemPrompt || undefined,
+        temperature: typeof temperature === 'number' ? temperature : 0.65,
+        topK: 3
+      });
+
+      const reply = await session.prompt(userPrompt);
+      return sanitizeModelOutput(reply);
+    } finally {
+      if (session && typeof session.destroy === 'function') {
+        try { session.destroy(); } catch (e) {}
+      }
+    }
+  }
+
+  // If in background service worker without window context, delegate to active tab
+  if (tabId && typeof chrome !== 'undefined' && chrome.tabs?.sendMessage) {
+    try {
+      const res = await chrome.tabs.sendMessage(tabId, {
+        action: 'PROMPT_CHROME_AI',
+        systemPrompt,
+        userPrompt
+      });
+      if (res && res.text) return sanitizeModelOutput(res.text);
+      if (res && res.error) throw new Error(res.error);
+    } catch (e) {
+      console.warn('Tab delegation for Chrome AI failed:', e);
+    }
+  }
+
+  throw new Error(
+    'Chrome Built-in AI (Prompt API) not available in this context. ' +
+    'To enable: use Chrome 127+ and turn on chrome://flags/#prompt-api-for-gemini-nano, ' +
+    'or switch to Ollama / Instant mode.'
+  );
+}
+
+async function callWebLLMOrLocalServer({ endpoint, model, apiKey, systemPrompt, userPrompt, temperature = 0.62, top_p = 0.93 }) {
+  const rawBase = (endpoint || 'http://127.0.0.1:8000/v1').trim().replace(/\/+$/, '');
+  const url = rawBase.endsWith('/chat/completions') ? rawBase : `${rawBase}/chat/completions`;
+
+  const headers = { 'Content-Type': 'application/json' };
+  if (apiKey && apiKey !== 'not-needed') {
+    headers['Authorization'] = `Bearer ${apiKey}`;
+  }
 
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
+    headers,
+    body: JSON.stringify({
+      model: model || 'Llama-3.2-1B-Instruct-q4f16_1-MLC',
+      messages: [
+        ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+        { role: 'user', content: userPrompt }
+      ],
+      temperature,
+      top_p
+    })
   });
 
   if (!res.ok) {
     const errText = await res.text().catch(() => '');
-    throw new Error(`Ollama HTTP ${res.status}: ${errText || res.statusText}`);
+    throw new Error(`WebLLM / Local Server HTTP ${res.status}: ${errText || res.statusText}`);
   }
 
   const data = await res.json();
-  return isV1 ? data.choices?.[0]?.message?.content : data.message?.content;
+  const content = data.choices?.[0]?.message?.content || '';
+  return sanitizeModelOutput(content);
 }
 
 async function callGemini({ apiKey, model, systemPrompt, userPrompt, temperature = 0.62, top_p = 0.93 }) {

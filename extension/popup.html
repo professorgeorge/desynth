@@ -95,6 +95,9 @@
       <div id="output-text" class="output-box" tabindex="0"></div>
     </section>
 
+    <!-- System Warning / Connection Banner -->
+    <div id="status-banner" class="status-banner hidden"></div>
+
     <!-- Engine & Settings Accordion -->
     <section class="section settings-section">
       <details id="settings-details">
@@ -104,7 +107,9 @@
             <label for="provider-select">Processing Engine:</label>
             <select id="provider-select">
               <option value="instant">✂️ Instant Deterministic (0ms, 100% Offline)</option>
-              <option value="ollama">🦙 Ollama Local (http://localhost:11434)</option>
+              <option value="ollama">🦙 Ollama Local (127.0.0.1 / localhost:11434)</option>
+              <option value="chrome-ai">✨ Chrome Built-in AI (Gemini Nano On-Device)</option>
+              <option value="webllm">🌐 WebLLM / Local Server (127.0.0.1:8000)</option>
               <option value="gemini">⚡ Google Gemini API</option>
               <option value="openai">🤖 OpenAI API</option>
               <option value="groq">🚀 Groq API (Ultra-fast)</option>
@@ -114,13 +119,56 @@
           <!-- Ollama settings -->
           <div id="ollama-config" class="config-panel hidden">
             <div class="form-group">
-              <label for="ollama-endpoint">Ollama Endpoint:</label>
-              <input type="text" id="ollama-endpoint" value="http://localhost:11434">
+              <div class="label-with-action">
+                <label for="ollama-endpoint">Ollama Endpoint:</label>
+                <button type="button" id="ollama-test-btn" class="btn-xs btn-ghost" title="Test ping to Ollama">⚡ Ping</button>
+              </div>
+              <input type="text" id="ollama-endpoint" value="http://127.0.0.1:11434" placeholder="http://127.0.0.1:11434">
             </div>
             <div class="form-group">
-              <label for="ollama-model">Model Name:</label>
-              <input type="text" id="ollama-model" value="llama3.2" placeholder="e.g. llama3.2, qwen2.5:14b">
+              <div class="label-with-action">
+                <label for="ollama-model-select">Installed Models:</label>
+                <button type="button" id="ollama-detect-btn" class="btn-xs btn-ghost" title="Scan local Ollama for installed models">🔄 Detect</button>
+              </div>
+              <select id="ollama-model-select" class="form-select">
+                <option value="qwen2.5:latest">qwen2.5:latest</option>
+                <option value="llama3.2:latest">llama3.2:latest</option>
+                <option value="gemma4:12b">gemma4:12b</option>
+              </select>
+              <input type="text" id="ollama-model" value="qwen2.5:latest" placeholder="Or type model name (e.g. qwen2.5:latest)" style="margin-top: 6px;">
             </div>
+            <div id="ollama-status-badge" class="engine-status-badge hidden"></div>
+          </div>
+
+          <!-- Chrome Built-in AI settings -->
+          <div id="chrome-ai-config" class="config-panel hidden">
+            <div class="chrome-ai-info">
+              <div class="chrome-ai-title">🧠 Gemini Nano (Prompt API)</div>
+              <div class="chrome-ai-desc">Runs entirely on-device inside Chrome. Zero network latency, zero API keys, 100% private.</div>
+              <div class="chrome-ai-status-row">
+                <span id="chrome-ai-status" class="engine-status-badge">Checking availability...</span>
+                <button type="button" id="chrome-ai-test-btn" class="btn-xs btn-ghost">⚡ Test Prompt</button>
+              </div>
+              <div id="chrome-ai-help" class="chrome-ai-help hidden">
+                To enable in Chrome: Open <code>chrome://flags</code>, search for <strong>Prompt API for Gemini Nano</strong> and <strong>Optimization Guide On Device Model</strong>, set to Enabled, and relaunch Chrome.
+              </div>
+            </div>
+          </div>
+
+          <!-- WebLLM settings -->
+          <div id="webllm-config" class="config-panel hidden">
+            <div class="form-group">
+              <div class="label-with-action">
+                <label for="webllm-endpoint">WebLLM / Local Server Endpoint:</label>
+                <button type="button" id="webllm-test-btn" class="btn-xs btn-ghost">⚡ Ping</button>
+              </div>
+              <input type="text" id="webllm-endpoint" value="http://127.0.0.1:8000/v1" placeholder="http://127.0.0.1:8000/v1">
+            </div>
+            <div class="form-group">
+              <label for="webllm-model">Model:</label>
+              <input type="text" id="webllm-model" value="Llama-3.2-1B-Instruct-q4f16_1-MLC" placeholder="e.g. Llama-3.2-1B-Instruct-q4f16_1-MLC">
+            </div>
+            <div id="webllm-status-badge" class="engine-status-badge hidden"></div>
           </div>
 
           <!-- Gemini settings -->

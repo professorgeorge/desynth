@@ -54,8 +54,30 @@ function triggerQuickHumanize(text) {
 }
 
 // Listen to messages from background service worker
-chrome.runtime.onMessage.addListener((msg) => {
-  if (msg.action === 'HUMANIZE_STARTED') {
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg.action === 'PROMPT_CHROME_AI') {
+    (async () => {
+      try {
+        const aiObj = (typeof ai !== 'undefined' && ai?.languageModel) ||
+                      (typeof window !== 'undefined' && window.ai?.languageModel) ||
+                      (typeof self !== 'undefined' && self.ai?.languageModel) ||
+                      (typeof navigator !== 'undefined' && navigator.ai?.languageModel);
+        if (!aiObj) {
+          sendResponse({ error: 'Chrome Built-in AI (Prompt API) not available in this tab window.' });
+          return;
+        }
+        const session = await aiObj.create({
+          systemPrompt: msg.systemPrompt || undefined
+        });
+        const reply = await session.prompt(msg.userPrompt);
+        if (session && typeof session.destroy === 'function') session.destroy();
+        sendResponse({ text: reply });
+      } catch (err) {
+        sendResponse({ error: err.message });
+      }
+    })();
+    return true; // Keep message port open for async response
+  } else if (msg.action === 'HUMANIZE_STARTED') {
     showHudLoading(msg.selectedText, msg.voiceId);
   } else if (msg.action === 'HUMANIZE_PROGRESS') {
     updateHudStatus(msg.status);

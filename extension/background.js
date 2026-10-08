@@ -77,8 +77,8 @@ chrome.runtime.onInstalled.addListener(() => {
     chrome.storage.local.set({
       defaultVoice: res.defaultVoice || 'george-orwell',
       provider: res.provider || 'instant',
-      ollamaEndpoint: res.ollamaEndpoint || 'http://localhost:11434',
-      ollamaModel: res.ollamaModel || 'llama3.2',
+      ollamaEndpoint: res.ollamaEndpoint || 'http://127.0.0.1:11434',
+      ollamaModel: res.ollamaModel || 'qwen2.5:latest',
       totalWordsSanitized: res.totalWordsSanitized || 0,
       totalTellsExcised: res.totalTellsExcised || 0
     });
@@ -141,7 +141,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     voiceId,
     mode: storage.mode || 'deep',
     provider,
-    config: storage,
+    config: { ...storage, tabId: tab.id },
     onProgress: (status) => {
       chrome.tabs.sendMessage(tab.id, {
         action: 'HUMANIZE_PROGRESS',
@@ -177,7 +177,7 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
         voiceId: req.voiceId || storage.defaultVoice || 'george-orwell',
         mode: req.mode || storage.mode || 'deep',
         provider: req.provider || storage.provider || 'instant',
-        config: storage
+        config: { ...storage, tabId: sender?.tab?.id }
       });
 
       const words = req.text.split(/\s+/).filter(Boolean).length;

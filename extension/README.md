@@ -33,7 +33,9 @@
    - Highlight any text and press `Alt + H` to immediately Desynth without touching your mouse.
 6. **Flexible Backend Engine**:
    - **Instant Deterministic**: 0ms latency, 100% offline.
-   - **Local Ollama**: Connects to `http://localhost:11434` with `llama3.2`, `qwen2.5:14b`, `mistral`, etc.
+   - **Local Ollama (Windows Dual IPv4/IPv6 Support)**: Connects to `http://127.0.0.1:11434` or `http://localhost:11434`. Features **🔄 1-Click Model Auto-Detection** for all downloaded models (`qwen2.5:latest`, `llama3.2:latest`, `gemma4:12b`, etc.) with a built-in ping test.
+   - **Chrome Built-in AI (Gemini Nano On-Device)**: 100% private, on-device AI running directly in Chrome via the native Prompt API (`chrome://flags/#prompt-api-for-gemini-nano`). Zero API keys required.
+   - **WebLLM / Local Server**: Connect to local WebLLM or WebGPU endpoints (`http://127.0.0.1:8000/v1`).
    - **Google Gemini API**: Blazing fast `gemini-2.0-flash`.
    - **OpenAI / Groq API**: `gpt-4o-mini`, `llama-3.3-70b-versatile`.
 
