@@ -203,7 +203,11 @@ async function callOllama(endpoint, model, systemPrompt, userPrompt, onProgress)
           { role: 'user', content: userPrompt }
         ],
         temperature: 0.7,
-        stream: false
+        stream: false,
+        options: {
+          num_ctx: 32768,
+          num_predict: 16384
+        }
       },
       extractor: (d) => d.choices?.[0]?.message?.content
     },
@@ -215,7 +219,12 @@ async function callOllama(endpoint, model, systemPrompt, userPrompt, onProgress)
           ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
           { role: 'user', content: userPrompt }
         ],
-        stream: false
+        stream: false,
+        options: {
+          num_ctx: 32768,
+          num_predict: 16384,
+          temperature: 0.7
+        }
       },
       extractor: (d) => d.message?.content
     }
