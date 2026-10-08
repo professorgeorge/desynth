@@ -36,14 +36,21 @@
     </div>
 
     <div class="header-center">
-      <button id="engine-selector-btn" class="engine-badge-btn" title="Configure LLM Backend">
-        <span class="engine-pulse-dot" id="engine-status-dot"></span>
-        <span id="current-engine-label">Demo Simulation</span>
-        <svg class="chevron-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
-      </button>
+      <div class="engine-badge-group">
+        <span class="engine-header-title">🧠 AI Backend:</span>
+        <button id="engine-selector-btn" class="engine-badge-btn" title="Configure LLM Backend Engine">
+          <span class="engine-pulse-dot" id="engine-status-dot"></span>
+          <span id="current-engine-label">Demo Simulation</span>
+          <svg class="chevron-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+      </div>
     </div>
 
     <div class="header-right">
+      <button id="factory-reset-btn" class="header-action-btn" title="Factory reset all settings, custom voice, and drafts" style="color:var(--text-muted);border-color:var(--border-subtle);">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        <span>Reset Studio</span>
+      </button>
       <button id="pwa-install-btn" class="header-action-btn hidden" title="Install App to Desktop/Mobile">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         <span>Install App</span>
@@ -171,9 +178,9 @@
               <div class="setup-input-col">
                 <!-- Drop Zone for Voice Sample -->
                 <div class="file-dropzone" id="voice-dropzone">
-                  <input type="file" id="voice-file-input" class="hidden-file-input" accept=".txt,.md,.text" />
+                  <input type="file" id="voice-file-input" class="hidden-file-input" accept=".txt,.md,.text,.markdown,.docx,.pdf" />
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                  <span>Drop your past writing sample file (.md, .txt) here, or browse</span>
+                  <span>Drop writing sample (.txt, .md, Word .docx, PDF .pdf) here, or browse</span>
                 </div>
 
                 <div class="form-group" style="margin-top:12px;">
@@ -182,10 +189,76 @@
                 </div>
 
                 <div class="voice-actions-row">
-                  <button type="button" id="extract-save-voice-btn" class="btn btn-primary">
-                    ✨ Analyze & Save My Voice DNA
+                  <button type="button" id="extract-save-voice-btn" class="btn btn-primary" title="Analyze sentence cadence, lexical richness, and syntactic traits">
+                    📊 Forensic Stylometric Extraction
+                  </button>
+                  <button type="button" id="extract-ai-voice-btn" class="btn btn-secondary" title="Use active AI backend for deep cognitive persona synthesis">
+                    🧠 Deep AI Voice Profile
                   </button>
                   <span id="custom-voice-status-msg" class="status-msg"></span>
+                </div>
+
+                <!-- Forensic Stylometric Fingerprint Audit Card -->
+                <div class="stylometrics-audit-card hidden" id="voice-stylometrics-card">
+                  <div class="audit-card-header">
+                    <div class="audit-header-title">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                      <strong>Forensic Stylometric Fingerprint</strong>
+                    </div>
+                    <span class="audit-stats-badge" id="audit-stats-badge">0 words analyzed</span>
+                  </div>
+
+                  <div class="audit-metrics-grid">
+                    <div class="audit-metric-box">
+                      <span class="audit-metric-label">Sentence Cadence</span>
+                      <strong class="audit-metric-val" id="audit-cadence-val">—</strong>
+                      <span class="audit-metric-sub" id="audit-cadence-sub">Burstiness: —</span>
+                    </div>
+
+                    <div class="audit-metric-box">
+                      <span class="audit-metric-label">Lexical Variety</span>
+                      <strong class="audit-metric-val" id="audit-ttr-val">—</strong>
+                      <span class="audit-metric-sub" id="audit-ttr-sub">Hapax Ratio: —</span>
+                    </div>
+
+                    <div class="audit-metric-box">
+                      <span class="audit-metric-label">Pronoun Stance</span>
+                      <strong class="audit-metric-val" id="audit-stance-val">—</strong>
+                      <span class="audit-metric-sub" id="audit-stance-sub">Perspective: —</span>
+                    </div>
+
+                    <div class="audit-metric-box">
+                      <span class="audit-metric-label">Epistemic Modality</span>
+                      <strong class="audit-metric-val" id="audit-epistemic-val">—</strong>
+                      <span class="audit-metric-sub" id="audit-epistemic-sub">Tone: —</span>
+                    </div>
+                  </div>
+
+                  <!-- Cadence distribution bar -->
+                  <div class="audit-bar-section">
+                    <div class="audit-bar-labels">
+                      <span>Sentence Cadence Distribution:</span>
+                      <span id="audit-dist-label">Short (&lt;12w) • Medium (12-25w) • Complex (&gt;25w)</span>
+                    </div>
+                    <div class="audit-dist-bar">
+                      <div class="dist-seg seg-short" id="bar-seg-short" style="width: 33%;" title="Short sentences (&lt;12w)"></div>
+                      <div class="dist-seg seg-med" id="bar-seg-med" style="width: 34%;" title="Medium sentences (12-25w)"></div>
+                      <div class="dist-seg seg-long" id="bar-seg-long" style="width: 33%;" title="Complex sentences (&gt;25w)"></div>
+                    </div>
+                  </div>
+
+                  <!-- Distinctive Vocabulary Markers -->
+                  <div class="audit-chips-section">
+                    <span class="audit-chips-title">Distinctive Content Keywords:</span>
+                    <div class="audit-chips-container" id="audit-keywords-container">
+                      <span style="color:var(--text-muted);font-size:0.72rem;">No text analyzed yet</span>
+                    </div>
+                  </div>
+
+                  <!-- Punctuation profile -->
+                  <div class="audit-punctuation-row" id="audit-punctuation-container">
+                    <!-- Punctuation traits added dynamically -->
+                  </div>
                 </div>
               </div>
             </div>
@@ -238,6 +311,12 @@
             </p>
           </div>
           <div class="stage-intro-actions">
+            <!-- Information Density Selector -->
+            <select id="density-selector" class="preset-select" title="Target Information Density & Compression Budget">
+              <option value="dense">⚡ Maximum Density (45% words - Brutally concise)</option>
+              <option value="balanced" selected>⚖️ Balanced Human (60% words - Direct & natural)</option>
+              <option value="narrative">📖 Narrative Depth (75% words - Expanded context)</option>
+            </select>
             <!-- Preset Selector -->
             <select id="preset-selector" class="preset-select" title="Load a demo preset">
               <option value="" disabled selected>✨ Load sample draft...</option>
@@ -261,9 +340,9 @@
 
           <!-- Drop Zone for Draft -->
           <div class="file-dropzone draft-dropzone" id="draft-dropzone">
-            <input type="file" id="draft-file-input" class="hidden-file-input" accept=".txt,.md,.text" />
+            <input type="file" id="draft-file-input" class="hidden-file-input" accept=".txt,.md,.text,.markdown,.docx,.pdf" />
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-            <span>Drop draft file (.md, .txt) here to inspect, or paste below</span>
+            <span>Drop draft file (.txt, .md, Word .docx, PDF .pdf) here, or browse</span>
           </div>
 
           <div class="textarea-wrapper" style="margin-top:12px;">
@@ -287,9 +366,16 @@
 
         <!-- Stage 2 Footer Navigation -->
         <div class="stage-footer-bar">
-          <button type="button" id="back-to-stage-1-btn" class="btn btn-secondary">
-            ← Back to Voice Selection
-          </button>
+          <div class="stage-footer-left-group">
+            <button type="button" id="back-to-stage-1-btn" class="btn btn-secondary">
+              ← Back to Voice Selection
+            </button>
+            <button type="button" id="stage2-engine-btn" class="engine-indicator-pill" title="Click to change AI Execution Backend">
+              <span class="engine-pulse-dot" id="stage2-engine-dot"></span>
+              <span id="stage2-engine-label">AI Engine: Demo Simulation</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+          </div>
           <div class="stage-footer-actions">
             <button id="detect-only-btn" class="btn btn-secondary" title="Audit patterns without rewriting">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -328,29 +414,29 @@
         <div class="pipeline-stepper" id="pipeline-stepper">
           <div class="step-node" id="step-node-1" data-step="1">
             <div class="step-dot">1</div>
-            <span class="step-label">Substance Extraction</span>
+            <span class="step-label">Atomic Facts</span>
           </div>
           <div class="step-connector" id="step-connector-1"></div>
           <div class="step-node" id="step-node-2" data-step="2">
             <div class="step-dot">2</div>
-            <span class="step-label">Persona Grounding</span>
+            <span class="step-label">Syntactic Grafting</span>
           </div>
           <div class="step-connector" id="step-connector-2"></div>
           <div class="step-node" id="step-node-3" data-step="3">
             <div class="step-dot">3</div>
-            <span class="step-label">Natural Draft</span>
+            <span class="step-label">Compressed Synthesis</span>
           </div>
           <div class="step-connector" id="step-connector-3"></div>
           <div class="step-node" id="step-node-4" data-step="4">
             <div class="step-dot">4</div>
-            <span class="step-label">Consistency Audit</span>
+            <span class="step-label">Slop Surgery</span>
           </div>
         </div>
 
         <!-- Intermediate Step Drawer -->
         <div class="step-details-drawer hidden" id="step-details-drawer">
           <div class="drawer-header">
-            <span id="drawer-title" class="drawer-title">Pass 1: Substance Extraction</span>
+            <span id="drawer-title" class="drawer-title">Pass 1: Atomic Facts</span>
             <button id="close-drawer-btn" class="close-drawer-btn">✕</button>
           </div>
           <div id="drawer-content" class="drawer-content"></div>
@@ -362,10 +448,12 @@
             <div class="tab-pill-group">
               <button class="tab-pill active" data-tab="rewrite">Rewritten Prose</button>
               <button class="tab-pill" data-tab="diff">Before / After Diff</button>
+              <button class="tab-pill" data-tab="claims">🔬 Claim Graph & Syntax</button>
               <button class="tab-pill" data-tab="stylometrics">Stylometrics & Audit</button>
             </div>
 
             <div class="output-actions">
+              <span class="compression-badge hidden" id="compression-badge">⚡ -45% words</span>
               <button id="copy-output-btn" class="btn btn-secondary btn-sm" title="Copy to clipboard">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
                 <span>Copy Prose</span>
@@ -404,7 +492,31 @@
             </div>
           </div>
 
-          <!-- Tab 3: Stylometrics & Audit -->
+          <!-- Tab 3: Micro-Claim Graph & Grafted Syntax -->
+          <div class="tab-pane hidden" id="tab-pane-claims">
+            <div class="claims-workbench-container">
+              <div class="claims-col">
+                <div class="claims-section-header">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+                  <strong>Extracted Atomic Claim Graph (Zero Narrative)</strong>
+                </div>
+                <div class="claims-content-box" id="claims-content-box">
+                  <span class="empty-claims-text">Atomic micro-claims will appear here after executing the pipeline.</span>
+                </div>
+              </div>
+              <div class="claims-col">
+                <div class="claims-section-header">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  <strong>Grafted Human Syntactic Frames</strong>
+                </div>
+                <div class="claims-content-box" id="syntax-frames-box">
+                  <span class="empty-claims-text">Grafted sentence molds from the author model will appear here.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 4: Stylometrics & Audit -->
           <div class="tab-pane hidden" id="tab-pane-stylometrics">
             <div class="stylometrics-container">
               <!-- Score Cards -->
@@ -492,7 +604,10 @@
   <div class="modal-overlay hidden" id="engine-modal">
     <div class="modal-card">
       <div class="modal-header">
-        <h3 class="modal-title">Configure LLM Backend</h3>
+        <div class="modal-title-group">
+          <h3 class="modal-title">⚡ Select & Configure AI Execution Backend</h3>
+          <p class="modal-subtitle">Choose where the 4-Pass cognitive engine runs: 100% locally in your browser (WebGPU/Ollama), direct client-side cloud APIs, or offline demo mode.</p>
+        </div>
         <button id="close-engine-modal-btn" class="icon-btn">✕</button>
       </div>
 
@@ -657,6 +772,9 @@
       </div>
 
       <div class="modal-footer">
+        <button type="button" id="reset-engine-btn" class="btn btn-secondary btn-sm" style="margin-right:auto;color:var(--accent-rose);border-color:rgba(244,63,94,0.3);">
+          🔄 Reset Engine Settings
+        </button>
         <button id="save-engine-btn" class="btn btn-primary">Save & Connect</button>
       </div>
     </div>

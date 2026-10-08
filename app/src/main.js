@@ -8,6 +8,13 @@ import {
 import { PRESETS } from './engine/presets.js';
 import { lintProse } from './engine/linter.js';
 import { runCognitivePipeline } from './engine/pipeline.js';
+import { extractTextFromFile } from './engine/file-parser.js';
+import {
+  analyzeAuthorStylometrics,
+  buildPersonaFromStylometrics,
+  analyzeAuthorWithAI,
+  parseYamlToCard
+} from './engine/stylometrics.js';
 import {
   detectChromeAI,
   isWebGPUSupported,
@@ -154,13 +161,31 @@ const voiceDropzone = document.getElementById('voice-dropzone');
 const voiceFileInput = document.getElementById('voice-file-input');
 const sampleAuthorText = document.getElementById('sample-author-text');
 const extractSaveVoiceBtn = document.getElementById('extract-save-voice-btn');
+const extractAiVoiceBtn = document.getElementById('extract-ai-voice-btn');
 const customVoiceStatusMsg = document.getElementById('custom-voice-status-msg');
+const voiceStylometricsCard = document.getElementById('voice-stylometrics-card');
+const auditStatsBadge = document.getElementById('audit-stats-badge');
+const auditCadenceVal = document.getElementById('audit-cadence-val');
+const auditCadenceSub = document.getElementById('audit-cadence-sub');
+const auditTtrVal = document.getElementById('audit-ttr-val');
+const auditTtrSub = document.getElementById('audit-ttr-sub');
+const auditStanceVal = document.getElementById('audit-stance-val');
+const auditStanceSub = document.getElementById('audit-stance-sub');
+const auditEpistemicVal = document.getElementById('audit-epistemic-val');
+const auditEpistemicSub = document.getElementById('audit-epistemic-sub');
+const auditDistLabel = document.getElementById('audit-dist-label');
+const barSegShort = document.getElementById('bar-seg-short');
+const barSegMed = document.getElementById('bar-seg-med');
+const barSegLong = document.getElementById('bar-seg-long');
+const auditKeywordsContainer = document.getElementById('audit-keywords-container');
+const auditPunctuationContainer = document.getElementById('audit-punctuation-container');
 const classicMastersGrid = document.getElementById('classic-masters-grid');
 const modernArchetypesGrid = document.getElementById('modern-archetypes-grid');
 
 // Stage 2: Target Draft
 const sourceTextEl = document.getElementById('source-text');
 const presetSelectorEl = document.getElementById('preset-selector');
+const densitySelectorEl = document.getElementById('density-selector');
 const clearInputBtn = document.getElementById('clear-input-btn');
 const inputStatsBadge = document.getElementById('input-stats-badge');
 const loadedFileName = document.getElementById('loaded-file-name');
@@ -188,11 +213,15 @@ const tabPills = document.querySelectorAll('.tab-pill');
 const tabPanes = {
   rewrite: document.getElementById('tab-pane-rewrite'),
   diff: document.getElementById('tab-pane-diff'),
+  claims: document.getElementById('tab-pane-claims'),
   stylometrics: document.getElementById('tab-pane-stylometrics')
 };
 const outputProseBox = document.getElementById('output-prose-box');
 const diffOriginalContent = document.getElementById('diff-original-content');
 const diffTransformedContent = document.getElementById('diff-transformed-content');
+const claimsContentBox = document.getElementById('claims-content-box');
+const syntaxFramesBox = document.getElementById('syntax-frames-box');
+const compressionBadge = document.getElementById('compression-badge');
 const copyOutputBtn = document.getElementById('copy-output-btn');
 const downloadOutputBtn = document.getElementById('download-output-btn');
 
@@ -254,8 +283,12 @@ const openaiEndpointInput = document.getElementById('openai-endpoint');
 const openaiKeyInput = document.getElementById('openai-key');
 const openaiModelInput = document.getElementById('openai-model');
 const testOpenaiBtn = document.getElementById('test-openai-btn');
-
 const pwaInstallBtn = document.getElementById('pwa-install-btn');
+const factoryResetBtn = document.getElementById('factory-reset-btn');
+const resetEngineBtn = document.getElementById('reset-engine-btn');
+const stage2EngineBtn = document.getElementById('stage2-engine-btn');
+const stage2EngineDot = document.getElementById('stage2-engine-dot');
+const stage2EngineLabel = document.getElementById('stage2-engine-label');
 
 // --- Initialization ---
 function init() {
@@ -268,9 +301,12 @@ function init() {
   setupDragAndDrop();
   setupPWA();
 
-  // If a saved custom persona is present, pre-fill sample text indicator
+  // If a saved custom persona is present, pre-fill sample text indicator and render metrics
   if (state.customPersona) {
     customVoiceStatusMsg.textContent = '✓ Voice DNA active & saved in local storage.';
+    if (state.customPersona.metrics) {
+      renderStylometricsAuditCard(state.customPersona.metrics);
+    }
   }
 }
 
@@ -303,11 +339,21 @@ function updateActiveHeroVoiceDisplay() {
 
   // Traits row
   heroTraitsContainer.innerHTML = '';
-  const traits = [
-    p.card?.epistemic_stance?.replace(/_/g, ' ') || 'empirical observational',
-    p.card?.lexical_habits?.formality_level?.replace(/_/g, ' ') || 'plain spoken',
-    p.card?.audience_relationship?.replace(/_/g, ' ') || 'peer colleague'
-  ];
+  let traits = [];
+  if (isCustom && p.metrics) {
+    traits = [
+      `Cadence: ~${p.metrics.meanSentenceLength}w/sent`,
+      `Burstiness: ${p.metrics.stdDevSentenceLength}`,
+      `TTR: ${p.metrics.typeTokenRatio}`,
+      p.card?.epistemic_stance?.replace(/_/g, ' ') || 'empirical'
+    ];
+  } else {
+    traits = [
+      p.card?.epistemic_stance?.replace(/_/g, ' ') || 'empirical observational',
+      p.card?.lexical_habits?.formality_level?.replace(/_/g, ' ') || 'plain spoken',
+      p.card?.audience_relationship?.replace(/_/g, ' ') || 'peer colleague'
+    ];
+  }
   traits.forEach(t => {
     const pill = document.createElement('span');
     pill.className = 'trait-pill';
@@ -431,68 +477,144 @@ function openExcerptModal(persona) {
   excerptModal.classList.remove('hidden');
 }
 
-// Extract and Persist Custom Author Voice
-function extractAndSaveUserVoice(sampleText) {
+// --- Forensic Stylometrics Rendering & Extraction ---
+
+function renderStylometricsAuditCard(metrics) {
+  if (!metrics || !voiceStylometricsCard) return;
+
+  auditStatsBadge.textContent = `${metrics.wordCount} words • ${metrics.sentenceCount} sentences`;
+  
+  auditCadenceVal.textContent = `${metrics.meanSentenceLength} words`;
+  auditCadenceSub.textContent = `Burstiness: ${metrics.stdDevSentenceLength} (${metrics.rhythmDescription.split('(')[0].trim()})`;
+
+  auditTtrVal.textContent = `TTR ${metrics.typeTokenRatio}`;
+  auditTtrSub.textContent = `Hapax: ${Math.round(metrics.hapaxRatio * 100)}% unique words`;
+
+  auditStanceVal.textContent = metrics.dominantPerspective.split('(')[0].trim();
+  auditStanceSub.textContent = `Contractions: ${metrics.contractionRate}/1k words`;
+
+  auditEpistemicVal.textContent = metrics.epistemicTone.split('/')[0].trim();
+  auditEpistemicSub.textContent = `Stance: ${metrics.epistemicStance.replace(/_/g, ' ')}`;
+
+  const d = metrics.sentenceDistribution;
+  auditDistLabel.textContent = `Short (<12w): ${d.pctShort}% • Medium (12-25w): ${d.pctMedium}% • Complex (>25w): ${d.pctLong}%`;
+  barSegShort.style.width = `${Math.max(4, d.pctShort)}%`;
+  barSegMed.style.width = `${Math.max(4, d.pctMedium)}%`;
+  barSegLong.style.width = `${Math.max(4, d.pctLong)}%`;
+
+  // Keywords
+  if (auditKeywordsContainer) {
+    if (metrics.topKeywords.length > 0) {
+      auditKeywordsContainer.innerHTML = metrics.topKeywords.map(k => `
+        <span class="audit-keyword-chip">#${escapeHtml(k)}</span>
+      `).join('');
+    } else {
+      auditKeywordsContainer.innerHTML = '<span style="color:var(--text-muted);font-size:0.72rem;">Insufficient length for distinctive keywords</span>';
+    }
+  }
+
+  // Punctuation
+  if (auditPunctuationContainer) {
+    auditPunctuationContainer.innerHTML = metrics.punctuationHabits.map(h => `
+      <span class="audit-punct-pill">📌 ${escapeHtml(h)}</span>
+    `).join('');
+  }
+
+  voiceStylometricsCard.classList.remove('hidden');
+}
+
+// Extract and Persist Custom Author Voice via Forensic Stylometrics or AI
+async function extractAndSaveUserVoice(sampleText, useAI = false) {
   const clean = (sampleText || '').trim();
-  if (!clean || clean.length < 50) {
-    alert('Please provide at least 1–2 paragraphs (50+ characters) of writing to analyze your authentic cadence.');
+  if (!clean || clean.length < 60) {
+    alert('Please provide at least 1–2 full paragraphs (60+ characters) to compute an authentic stylometric fingerprint.');
     return;
   }
 
-  const words = clean.split(/\s+/).length;
-  const isTechnical = /code|data|system|query|api|server|function|service|database|latency|cache/i.test(clean);
-  const isPhilosophical = /truth|logic|mind|belief|knowledge|question|reason|paradox/i.test(clean);
-  const formality = clean.includes("I'm") || clean.includes("we're") || clean.includes("don't") ? 'conversational' : 'plain_spoken';
+  const metrics = analyzeAuthorStylometrics(clean);
+  if (!metrics || metrics.wordCount < 15) {
+    alert('Writing sample is too brief to analyze. Please provide a longer sample (at least 20–30 words).');
+    return;
+  }
 
-  const stance = isPhilosophical
-    ? 'analytic_skeptical'
-    : isTechnical
-    ? 'operational_practitioner'
-    : 'empirical_observational';
+  // Render forensic audit dashboard immediately
+  renderStylometricsAuditCard(metrics);
 
-  const customPersona = {
-    id: 'custom-user-voice',
-    name: 'My Saved Voice',
-    badge: '👤 My Voice DNA',
-    era: 'User Personal DNA (Saved)',
-    domain: isTechnical ? 'Technical Engineering' : isPhilosophical ? 'Analytical / Logical' : 'Empirical Observation',
-    description: `Extracted from ${words} words of authentic personal writing. Calibrated for ${stance.replace(/_/g, ' ')}.`,
-    sampleExcerpt: clean.slice(0, 300) + '...',
-    card: {
-      epistemic_stance: stance,
-      audience_relationship: 'peer_colleague',
-      shared_context: 'high',
-      lexical_habits: {
-        repetition_tolerance: 'high (uses precise terms naturally)',
-        formality_level: formality,
-        metaphor_usage: 'rare (prefers concrete mechanics)'
-      },
-      asymmetry_tolerance: {
-        allows_functional_plainness: true,
-        allows_uneven_paragraph_lengths: true,
-        allows_unresolved_asides: true
-      },
-      focus_biases: {
-        cares_about: ['concrete trade-offs', 'observed facts', 'unvarnished mechanics'],
-        ignores: ['formulaic buzzwords', 'generic transitions', 'performative excitement']
+  extractSaveVoiceBtn.disabled = true;
+  if (extractAiVoiceBtn) extractAiVoiceBtn.disabled = true;
+  customVoiceStatusMsg.textContent = useAI ? '🧠 Running Deep AI Persona Modeling...' : '📊 Computing forensic stylometrics...';
+
+  try {
+    let customPersona = null;
+
+    if (useAI && state.activeProvider !== 'demo') {
+      const engineCfg = getActiveEngineConfig();
+      customVoiceStatusMsg.textContent = `🧠 Connecting to ${engineCfg.provider} to synthesize Latent Author YAML...`;
+      
+      const rawYaml = await analyzeAuthorWithAI({
+        sampleText: clean,
+        engineConfig: engineCfg,
+        metrics,
+        onProgress: (p) => {
+          if (typeof p === 'string') customVoiceStatusMsg.textContent = `🧠 ${p}`;
+        }
+      });
+
+      const parsedCard = parseYamlToCard(rawYaml, metrics);
+      
+      customPersona = {
+        id: 'custom-user-voice',
+        name: 'My AI-Calibrated Voice',
+        badge: '👤 My Voice DNA (AI + Stylometrics)',
+        era: `User Forensic DNA (${engineCfg.provider})`,
+        domain: metrics.topKeywords.length > 0 ? `Focus: ${metrics.topKeywords.slice(0, 3).join(', ')}` : 'Empirical Discourse',
+        description: `Synthesized via ${engineCfg.provider} from ${metrics.wordCount} words. Mean sentence: ${metrics.meanSentenceLength}w • Burstiness: ${metrics.stdDevSentenceLength} • Stance: ${parsedCard.epistemic_stance}.`,
+        sampleExcerpt: clean.slice(0, 320) + (clean.length > 320 ? '...' : ''),
+        metrics,
+        rawYaml,
+        card: parsedCard
+      };
+    } else {
+      if (useAI && state.activeProvider === 'demo') {
+        alert('Active backend is Demo Simulation. Performing full mathematical forensic stylometric modeling instead of remote AI profiling.');
       }
+      // Pure deterministic stylometric modeling
+      customPersona = buildPersonaFromStylometrics(metrics, clean);
     }
-  };
 
-  state.customPersona = customPersona;
-  localStorage.setItem(STORAGE_KEYS.customPersona, JSON.stringify(customPersona));
-  selectPersona(customPersona);
+    state.customPersona = customPersona;
+    localStorage.setItem(STORAGE_KEYS.customPersona, JSON.stringify(customPersona));
+    selectPersona(customPersona);
 
-  customVoiceStatusMsg.textContent = `✓ Voice DNA extracted from ${words} words and saved in local storage!`;
-  alert('✨ Your Author Voice DNA has been calibrated and saved! It will remain active across sessions until you clear it.');
+    customVoiceStatusMsg.textContent = `✓ Forensic voice DNA calibrated from ${metrics.wordCount} words!`;
+    alert(
+      `✨ Author Voice DNA Successfully Calibrated!\n\n` +
+      `• Analyzed: ${metrics.wordCount} words across ${metrics.sentenceCount} sentences\n` +
+      `• Mean Sentence Length: ${metrics.meanSentenceLength} words\n` +
+      `• Syntactic Burstiness: ${metrics.stdDevSentenceLength} (${metrics.rhythmDescription.split('(')[0].trim()})\n` +
+      `• Lexical Variety (TTR): ${metrics.typeTokenRatio}\n` +
+      `• Dominant Perspective: ${metrics.dominantPerspective}\n` +
+      `• Epistemic Tone: ${metrics.epistemicTone}\n` +
+      `• Stance: ${customPersona.card.epistemic_stance.replace(/_/g, ' ')}\n\n` +
+      `Your authentic model is preserved and will govern all rewrites until cleared.`
+    );
+  } catch (err) {
+    console.error('Voice extraction error:', err);
+    customVoiceStatusMsg.textContent = `❌ ${err.message}`;
+    alert(`Could not complete voice modeling: ${err.message}`);
+  } finally {
+    extractSaveVoiceBtn.disabled = false;
+    if (extractAiVoiceBtn) extractAiVoiceBtn.disabled = false;
+  }
 }
 
 function clearCustomVoice() {
-  if (confirm('Clear your custom voice DNA from local storage?')) {
+  if (confirm('Clear your custom voice DNA and forensic profile from local storage?')) {
     state.customPersona = null;
     localStorage.removeItem(STORAGE_KEYS.customPersona);
     sampleAuthorText.value = '';
     customVoiceStatusMsg.textContent = '';
+    if (voiceStylometricsCard) voiceStylometricsCard.classList.add('hidden');
     selectPersona(CLASSIC_PERSONAS[0]);
     alert('Custom voice cleared. Active voice reset to Bertrand Russell.');
   }
@@ -551,9 +673,17 @@ function setupDragAndDrop() {
   setupFileDrop(
     voiceDropzone,
     voiceFileInput,
-    (content, fileName) => {
-      sampleAuthorText.value = content;
-      extractAndSaveUserVoice(content);
+    async (file) => {
+      customVoiceStatusMsg.textContent = `⏳ Parsing ${file.name}...`;
+      try {
+        const parsed = await extractTextFromFile(file);
+        sampleAuthorText.value = parsed.text;
+        extractAndSaveUserVoice(parsed.text);
+      } catch (err) {
+        console.error('Voice file extraction error:', err);
+        alert(`Could not extract text from "${file.name}": ${err.message}`);
+        customVoiceStatusMsg.textContent = `❌ ${err.message}`;
+      }
     }
   );
 
@@ -561,16 +691,25 @@ function setupDragAndDrop() {
   setupFileDrop(
     draftDropzone,
     draftFileInput,
-    (content, fileName) => {
-      sourceTextEl.value = content;
-      loadedFileName.textContent = `📄 ${fileName}`;
+    async (file) => {
+      loadedFileName.textContent = `⏳ Parsing ${file.name}...`;
       loadedFileName.classList.remove('hidden');
-      updateDraftWordCountAndRadar();
+      try {
+        const parsed = await extractTextFromFile(file);
+        sourceTextEl.value = parsed.text;
+        loadedFileName.textContent = `📄 ${parsed.fileName} (${parsed.words} words • .${parsed.fileType})`;
+        loadedFileName.classList.remove('hidden');
+        updateDraftWordCountAndRadar();
+      } catch (err) {
+        console.error('Draft file extraction error:', err);
+        alert(`Could not extract text from "${file.name}": ${err.message}`);
+        loadedFileName.textContent = `❌ Error loading ${file.name}`;
+      }
     }
   );
 }
 
-function setupFileDrop(dropzoneEl, fileInputEl, onFileRead) {
+function setupFileDrop(dropzoneEl, fileInputEl, handleFile) {
   if (!dropzoneEl || !fileInputEl) return;
 
   ['dragenter', 'dragover'].forEach(eventName => {
@@ -592,27 +731,17 @@ function setupFileDrop(dropzoneEl, fileInputEl, onFileRead) {
   dropzoneEl.addEventListener('drop', (e) => {
     const files = e.dataTransfer.files;
     if (files && files[0]) {
-      readFile(files[0], onFileRead);
+      handleFile(files[0]);
     }
   });
 
   fileInputEl.addEventListener('change', (e) => {
     const files = e.target.files;
     if (files && files[0]) {
-      readFile(files[0], onFileRead);
+      handleFile(files[0]);
     }
+    fileInputEl.value = ''; // Reset input to allow re-uploading same file
   });
-}
-
-function readFile(file, callback) {
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    callback(e.target.result, file.name);
-  };
-  reader.onerror = () => {
-    alert(`Could not read file ${file.name}`);
-  };
-  reader.readAsText(file);
 }
 
 // --- Pipeline Execution Handlers ---
@@ -675,10 +804,13 @@ async function handleRunPipeline() {
   `;
 
   try {
+    const densityVal = densitySelectorEl ? densitySelectorEl.value : 'balanced';
+
     const pipelineResult = await runCognitivePipeline({
       input: text,
       persona: state.activePersona,
       engineConfig: engineCfg,
+      density: densityVal,
       onStepUpdate: ({ step, name, status, data }) => {
         updateStepperState(step, status);
         const liveStatus = document.getElementById('stepper-live-status');
@@ -737,6 +869,26 @@ function renderResults(result) {
   outputProseBox.innerHTML = `<div class="rendered-prose-text" style="white-space: pre-wrap;">${escapeHtml(result.finalRewrite)}</div>`;
   renderDiffView(sourceTextEl.value, result.finalRewrite);
   renderMetricsAndFindings(result.inputLint, result.outputLint);
+
+  // Render Atomic Claims Graph & Syntactic Frames
+  if (claimsContentBox) {
+    claimsContentBox.textContent = result.factGraph || 'No atomic claims extracted.';
+  }
+  if (syntaxFramesBox) {
+    if (result.syntacticFrames && result.syntacticFrames.length > 0) {
+      syntaxFramesBox.innerHTML = result.syntacticFrames
+        .map((f, i) => `<div style="margin-bottom:12px;background:rgba(255,255,255,0.03);padding:8px 10px;border-radius:6px;border:1px solid var(--border-subtle);"><strong style="color:var(--accent-cyan);">Mold ${i + 1}:</strong> "${escapeHtml(f)}"</div>`)
+        .join('');
+    } else {
+      syntaxFramesBox.innerHTML = '<span style="color:var(--text-muted);">Default human syntactic molds applied.</span>';
+    }
+  }
+
+  // Update Compression Badge
+  if (compressionBadge) {
+    compressionBadge.textContent = `⚡ -${result.compressionRatio}% words (${result.densityMode || 'balanced'})`;
+    compressionBadge.classList.remove('hidden');
+  }
 }
 
 function renderDiffView(original, rewritten) {
@@ -795,27 +947,40 @@ function escapeHtml(str) {
 
 function updateEngineUI() {
   const p = state.activeProvider;
+  let label = '';
+  let color = '#10B981';
+
   if (p === 'demo') {
-    currentEngineLabel.textContent = 'Demo Simulation';
-    engineStatusDot.style.background = '#10B981';
+    label = 'Demo Simulation';
+    color = '#10B981';
   } else if (p === 'webllm') {
     const model = state.providerConfigs.webllm.model || 'Llama 3.2 1B';
     const shortName = model.split('-')[0] + ' ' + (model.split('-')[1] || '');
-    currentEngineLabel.textContent = `WebLLM (${shortName})`;
-    engineStatusDot.style.background = '#06B6D4';
+    label = `WebLLM (${shortName})`;
+    color = '#06B6D4';
   } else if (p === 'chrome-ai') {
-    currentEngineLabel.textContent = 'Chrome Nano';
-    engineStatusDot.style.background = '#38BDF8';
+    label = 'Chrome Nano';
+    color = '#38BDF8';
   } else if (p === 'ollama') {
-    currentEngineLabel.textContent = `Ollama (${state.providerConfigs.ollama.model || 'local'})`;
-    engineStatusDot.style.background = '#818CF8';
+    label = `Ollama (${state.providerConfigs.ollama.model || 'local'})`;
+    color = '#818CF8';
   } else if (p === 'gemini') {
     const model = state.providerConfigs.gemini.model || 'gemini-2.0-flash';
-    currentEngineLabel.textContent = `Gemini (${model.replace('gemini-', '')})`;
-    engineStatusDot.style.background = '#F59E0B';
+    label = `Gemini (${model.replace('gemini-', '')})`;
+    color = '#F59E0B';
   } else {
-    currentEngineLabel.textContent = `Cloud (${state.providerConfigs.openai.model || 'API'})`;
-    engineStatusDot.style.background = '#C084FC';
+    label = `Cloud (${state.providerConfigs.openai.model || 'API'})`;
+    color = '#C084FC';
+  }
+
+  currentEngineLabel.textContent = label;
+  engineStatusDot.style.background = color;
+
+  if (stage2EngineLabel) {
+    stage2EngineLabel.textContent = `AI Engine: ${label}`;
+  }
+  if (stage2EngineDot) {
+    stage2EngineDot.style.background = color;
   }
 }
 
@@ -895,10 +1060,15 @@ function setupEventListeners() {
     });
   });
 
-  // Custom Voice Extraction Button
+  // Custom Voice Extraction Buttons
   extractSaveVoiceBtn.addEventListener('click', () => {
-    extractAndSaveUserVoice(sampleAuthorText.value);
+    extractAndSaveUserVoice(sampleAuthorText.value, false);
   });
+  if (extractAiVoiceBtn) {
+    extractAiVoiceBtn.addEventListener('click', () => {
+      extractAndSaveUserVoice(sampleAuthorText.value, true);
+    });
+  }
 
   // Excerpt Modal Controls
   closeExcerptModalBtn.addEventListener('click', () => excerptModal.classList.add('hidden'));
@@ -1162,6 +1332,128 @@ function setupEventListeners() {
     updateEngineUI();
     engineModal.classList.add('hidden');
   });
+
+  // Factory Reset button
+  if (factoryResetBtn) {
+    factoryResetBtn.addEventListener('click', resetStudioFactory);
+  }
+
+  // Engine Reset button
+  if (resetEngineBtn) {
+    resetEngineBtn.addEventListener('click', resetEngineSettings);
+  }
+
+  // Stage 2 Engine Pill button
+  if (stage2EngineBtn) {
+    stage2EngineBtn.addEventListener('click', () => {
+      engineSelectorBtn.click();
+    });
+  }
+}
+
+// Studio Factory Reset: Clears custom voice, drafts, API keys, cache, and returns to initial state
+function resetStudioFactory() {
+  const confirmed = confirm(
+    '⚠️ STUDIO FACTORY RESET\n\n' +
+    'This will erase:\n' +
+    '• Your saved custom author voice DNA\n' +
+    '• All loaded draft texts and analysis findings\n' +
+    '• Saved LLM API keys and connection settings\n\n' +
+    'Are you sure you want to restore the studio to factory defaults?'
+  );
+
+  if (!confirmed) return;
+
+  // Clear all localStorage keys starting with stop_slop_
+  Object.keys(localStorage).forEach(key => {
+    if (key.startsWith('stop_slop_')) {
+      localStorage.removeItem(key);
+    }
+  });
+
+  // Reset internal state
+  state.customPersona = null;
+  state.activePersona = CLASSIC_PERSONAS[0]; // Default to Bertrand Russell
+  state.activeProvider = 'demo';
+  state.providerConfigs = {
+    demo: {},
+    webllm: { model: 'Llama-3.2-1B-Instruct-q4f16_1-MLC' },
+    ollama: { endpoint: 'http://localhost:11434', model: 'llama3.2' },
+    gemini: { apiKey: '', model: 'gemini-2.0-flash' },
+    'chrome-ai': {},
+    openai: {
+      endpoint: 'https://api.groq.com/openai/v1',
+      apiKey: '',
+      model: 'llama-3.3-70b-versatile'
+    }
+  };
+  state.lastResult = null;
+
+  // Reset inputs
+  if (sourceTextEl) sourceTextEl.value = '';
+  if (sampleAuthorText) sampleAuthorText.value = '';
+  if (loadedFileName) {
+    loadedFileName.textContent = '';
+    loadedFileName.classList.add('hidden');
+  }
+  if (customVoiceStatusMsg) customVoiceStatusMsg.textContent = '';
+  if (presetSelectorEl) presetSelectorEl.value = '';
+
+  // Reset metrics & views
+  resetStepper();
+  outputProseBox.innerHTML = `
+    <div class="empty-state">
+      <div style="font-size:2rem;margin-bottom:10px;">✨</div>
+      <h3>Studio Reset Complete</h3>
+      <p>Configure an author voice and load a draft to begin.</p>
+    </div>
+  `;
+  diffOriginalContent.innerHTML = '';
+  diffTransformedContent.innerHTML = '';
+  if (densitySelectorEl) densitySelectorEl.value = 'balanced';
+  if (compressionBadge) compressionBadge.classList.add('hidden');
+  if (claimsContentBox) claimsContentBox.textContent = 'Atomic micro-claims will appear here after executing the pipeline.';
+  if (syntaxFramesBox) syntaxFramesBox.textContent = 'Grafted sentence molds from the author model will appear here.';
+
+  // Switch to Stage 1
+  switchStage(1);
+  updateActiveHeroVoiceDisplay();
+  updateDraftWordCountAndRadar();
+  updateEngineUI();
+  populateModalInputs();
+
+  alert('✨ Studio has been completely reset to factory defaults.');
+}
+
+// Reset Engine Settings only: resets provider to demo and clears keys
+function resetEngineSettings() {
+  const confirmed = confirm('Reset AI Backend connection settings to default Demo mode and clear saved API keys?');
+  if (!confirmed) return;
+
+  [
+    STORAGE_KEYS.provider,
+    STORAGE_KEYS.webllmModel,
+    STORAGE_KEYS.ollamaEndpoint,
+    STORAGE_KEYS.ollamaModel,
+    STORAGE_KEYS.geminiKey,
+    STORAGE_KEYS.geminiModel,
+    STORAGE_KEYS.openaiEndpoint,
+    STORAGE_KEYS.openaiKey,
+    STORAGE_KEYS.openaiModel
+  ].forEach(key => localStorage.removeItem(key));
+
+  state.activeProvider = 'demo';
+  state.providerConfigs.demo = {};
+  state.providerConfigs.gemini.apiKey = '';
+  state.providerConfigs.openai.apiKey = '';
+  state.providerConfigs.openai.endpoint = 'https://api.groq.com/openai/v1';
+  state.providerConfigs.openai.model = 'llama-3.3-70b-versatile';
+  state.providerConfigs.ollama.endpoint = 'http://localhost:11434';
+  state.providerConfigs.ollama.model = 'llama3.2';
+
+  populateModalInputs();
+  updateEngineUI();
+  showFeedback('demo', 'success', '✓ AI Engine reset to Demo Simulation defaults.');
 }
 
 function setupPWA() {
