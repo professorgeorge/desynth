@@ -191,7 +191,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `stop-slop-voices-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `desynth-voices-backup-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
   });

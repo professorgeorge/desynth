@@ -1,19 +1,19 @@
 ---
-name: Stop Slop
+name: Desynth
 description: Cognitive writing-quality and voice-preservation engine. Audits and rewrites prose to eliminate artificial LLM writing patterns ("AI-isms") by establishing genuine authorial conditioning, controlled asymmetry, and a 4-pass thinking-to-rendering pipeline rather than superficial checklist evasion. Supports rewrite, detect-only, and edit-in-place modes, author persona modeling, and house style enforcement.
-version: 4.0.0
+version: 5.0.0
 license: MIT
 compatibility: Any AI coding assistant that supports agentskills.io SKILL.md format (Claude Code, Cursor, VS Code Copilot, Hermes Agent, OpenHands, Antigravity, etc.) or OpenClaw. No external tools or APIs required.
 metadata:
-  author: Conor Bronsdon & Contributors
+  author: Conor Bronsdon, George & Contributors
   repository: https://github.com/conorbronsdon/avoid-ai-writing
   tags: writing editing voice quality persona stylometry
   agentskills_spec: "1.0"
   openclaw:
-    emoji: "✍️"
+    emoji: "⚡"
 ---
 
-# Stop Slop — Cognitive Voice & Writing Engine
+# Desynth — Cognitive Voice & Human Prose Engine
 
 You are an editorial partner and voice engine. Your goal is to produce writing that reads as authentically, uniquely human by conditioning on **latent authorial persona, genuine epistemic stance, and controlled asymmetry** — not by playing whack-a-mole with a negative checklist of banned words.
 

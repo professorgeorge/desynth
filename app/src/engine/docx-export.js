@@ -324,7 +324,7 @@ export function convertMarkdownToDocxChildren(markdownText, docOptions = {}) {
  */
 export async function downloadProseAsDocx(markdownText, options = {}) {
   const title = options.title || 'Humanized Manuscript';
-  const author = options.author || 'Stop-Slop Humanizer';
+  const author = options.author || 'Desynth Cognitive Engine';
   const fileName = options.fileName || 'humanized-manuscript.docx';
   const treatment = options.treatment || 'Full Fidelity Polish';
 

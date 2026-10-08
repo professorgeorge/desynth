@@ -1,7 +1,7 @@
 {
-  "name": "Stop Slop: Cognitive Writing Studio",
-  "short_name": "StopSlop",
-  "description": "Transform AI-isms into authentic human prose with author persona modeling and a 4-pass cognitive engine.",
+  "name": "Desynth: Cognitive Voice & Human Prose Engine",
+  "short_name": "Desynth",
+  "description": "De-synthesize AI text and restore authentic human prose with author persona modeling and a 4-pass cognitive engine.",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#0C0B0A",

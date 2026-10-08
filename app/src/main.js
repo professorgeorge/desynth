@@ -737,7 +737,7 @@ function backupVoices() {
     return;
   }
   const payload = {
-    app: 'stop-slop',
+    app: 'desynth',
     version: '1.0',
     exportedAt: new Date().toISOString(),
     profilesCount: state.customPersonas.length,
@@ -749,7 +749,7 @@ function backupVoices() {
   const a = document.createElement('a');
   const dateStamp = new Date().toISOString().slice(0, 10);
   a.href = url;
-  a.download = `stop-slop-custom-voices-${dateStamp}.json`;
+  a.download = `desynth-custom-voices-${dateStamp}.json`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -1907,7 +1907,7 @@ function setupEventListeners() {
 
         await downloadProseAsDocx(textToExport, {
           title: `Humanized Manuscript (${voiceName})`,
-          author: `${voiceName} • Stop-Slop Humanizer`,
+          author: `${voiceName} • Desynth Studio`,
           fileName: fileName,
           treatment: treatmentLabel
         });

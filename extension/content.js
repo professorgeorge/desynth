@@ -1,4 +1,4 @@
-// Stop-Slop In-Page Content Script & HUD Overlay
+// Desynth In-Page Content Script & HUD Overlay
 // Runs in Shadow DOM to guarantee zero CSS conflict with host websites.
 
 let lastActiveSelection = null;
@@ -108,7 +108,7 @@ function showHudLoading(text, voice) {
 
   const pos = calculateHudPosition();
   const container = document.createElement('div');
-  container.id = 'stop-slop-hud-host';
+  container.id = 'desynth-hud-host';
   container.style.position = 'absolute';
   container.style.top = `${pos.top}px`;
   container.style.left = `${pos.left}px`;
@@ -123,7 +123,7 @@ function showHudLoading(text, voice) {
       <div class="ss-hud-header">
         <div class="ss-logo">
           <span class="ss-dot"></span>
-          <strong>Stop-Slop</strong>
+          <strong>Desynth</strong>
         </div>
         <button class="ss-close-btn" id="ss-close">&times;</button>
       </div>
@@ -151,7 +151,7 @@ function showHudResult(originalText, result) {
   if (!activeHudContainer) {
     const pos = calculateHudPosition();
     const container = document.createElement('div');
-    container.id = 'stop-slop-hud-host';
+    container.id = 'desynth-hud-host';
     container.style.position = 'absolute';
     container.style.top = `${pos.top}px`;
     container.style.left = `${pos.left}px`;
@@ -174,7 +174,7 @@ function showHudResult(originalText, result) {
       <div class="ss-hud-header">
         <div class="ss-logo">
           <span class="ss-dot ss-dot-active"></span>
-          <strong>Stop-Slop</strong>
+          <strong>Desynth</strong>
           <span class="ss-badge">${result.voice || 'Humanized'}</span>
           <span class="ss-mode-badge">${modeLabel}</span>
         </div>

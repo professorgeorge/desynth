@@ -5,23 +5,23 @@ chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.removeAll(() => {
     // Parent Context Menu
     chrome.contextMenus.create({
-      id: 'stop-slop-parent',
-      title: 'Stop-Slop: Humanize Selection',
+      id: 'desynth-parent',
+      title: 'Desynth: Humanize Selection',
       contexts: ['selection']
     });
 
     // Quick Default
     chrome.contextMenus.create({
-      id: 'stop-slop-quick',
-      parentId: 'stop-slop-parent',
-      title: '⚡ Quick Humanize (Default Voice)',
+      id: 'desynth-quick',
+      parentId: 'desynth-parent',
+      title: '⚡ Quick Desynth (Default Voice)',
       contexts: ['selection']
     });
 
     // Separator
     chrome.contextMenus.create({
-      id: 'stop-slop-sep-1',
-      parentId: 'stop-slop-parent',
+      id: 'desynth-sep-1',
+      parentId: 'desynth-parent',
       type: 'separator',
       contexts: ['selection']
     });
@@ -29,45 +29,45 @@ chrome.runtime.onInstalled.addListener(() => {
     // Voice Choices
     chrome.contextMenus.create({
       id: 'voice-george-orwell',
-      parentId: 'stop-slop-parent',
+      parentId: 'desynth-parent',
       title: '🖋️ Plain English & Anti-Jargon (Orwell)',
       contexts: ['selection']
     });
 
     chrome.contextMenus.create({
       id: 'voice-systems-engineer',
-      parentId: 'stop-slop-parent',
+      parentId: 'desynth-parent',
       title: '🛠️ Systems Engineer (Runtime Trade-offs)',
       contexts: ['selection']
     });
 
     chrome.contextMenus.create({
       id: 'voice-scholarly-researcher',
-      parentId: 'stop-slop-parent',
+      parentId: 'desynth-parent',
       title: '🎓 Academic Empirical (Methodological Rigor)',
       contexts: ['selection']
     });
 
     chrome.contextMenus.create({
       id: 'voice-bertrand-russell',
-      parentId: 'stop-slop-parent',
+      parentId: 'desynth-parent',
       title: '📜 Bertrand Russell (Rigorous Logic)',
       contexts: ['selection']
     });
 
     // Separator
     chrome.contextMenus.create({
-      id: 'stop-slop-sep-2',
-      parentId: 'stop-slop-parent',
+      id: 'desynth-sep-2',
+      parentId: 'desynth-parent',
       type: 'separator',
       contexts: ['selection']
     });
 
     // 0ms Instant Clean
     chrome.contextMenus.create({
-      id: 'stop-slop-instant',
-      parentId: 'stop-slop-parent',
-      title: '✂️ Instant 0ms Surgical Clean (No LLM)',
+      id: 'desynth-instant',
+      parentId: 'desynth-parent',
+      title: '✂️ Instant 0ms Desynth (No LLM)',
       contexts: ['selection']
     });
   });
@@ -113,7 +113,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
   if (info.menuItemId.startsWith('voice-')) {
     voiceId = info.menuItemId.replace('voice-', '');
-  } else if (info.menuItemId === 'stop-slop-instant') {
+  } else if (info.menuItemId === 'desynth-instant') {
     provider = 'instant';
   }
 
