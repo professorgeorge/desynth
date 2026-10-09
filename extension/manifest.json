@@ -21,8 +21,18 @@
     "contextMenus",
     "storage",
     "activeTab",
-    "scripting"
+    "scripting",
+    "declarativeNetRequest"
   ],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "ollama_rules",
+        "enabled": true,
+        "path": "rules.json"
+      }
+    ]
+  },
   "host_permissions": [
     "<all_urls>",
     "http://localhost:11434/*",

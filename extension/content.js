@@ -58,15 +58,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.action === 'PROMPT_CHROME_AI') {
     (async () => {
       try {
-        const aiObj = (typeof ai !== 'undefined' && ai?.languageModel) ||
-                      (typeof window !== 'undefined' && window.ai?.languageModel) ||
-                      (typeof self !== 'undefined' && self.ai?.languageModel) ||
-                      (typeof navigator !== 'undefined' && navigator.ai?.languageModel);
-        if (!aiObj) {
+        const g = typeof globalThis !== 'undefined' ? globalThis : window;
+        const api = g.LanguageModel || g.ai?.languageModel || g.window?.ai?.languageModel || g.navigator?.ai?.languageModel;
+        if (!api) {
           sendResponse({ error: 'Chrome Built-in AI (Prompt API) not available in this tab window.' });
           return;
         }
-        const session = await aiObj.create({
+        const session = await api.create({
           systemPrompt: msg.systemPrompt || undefined
         });
         const reply = await session.prompt(msg.userPrompt);

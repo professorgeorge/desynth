@@ -240,38 +240,81 @@ document.addEventListener('DOMContentLoaded', async () => {
   ollamaDetectBtn.addEventListener('click', () => detectOllama(false));
 
   ollamaTestBtn.addEventListener('click', async () => {
-    const base = (ollamaEndpoint.value.trim() || 'http://127.0.0.1:11434').replace(/\/+$/, '');
+    const rawBase = (ollamaEndpoint.value.trim() || 'http://127.0.0.1:11434').replace(/\/+$/, '');
     const model = ollamaModel.value.trim() || 'llama3.2';
     ollamaStatusBadge.textContent = `⚡ Testing ping to ${model}...`;
     ollamaStatusBadge.className = 'engine-status-badge';
     ollamaStatusBadge.classList.remove('hidden');
 
-    try {
-      const start = performance.now();
-      const res = await fetch(`${base}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model,
-          messages: [{ role: 'user', content: 'Say "Ready" in one word.' }],
-          stream: false
-        })
-      });
+    const candidateBases = [rawBase];
+    if (!candidateBases.includes('http://127.0.0.1:11434')) candidateBases.push('http://127.0.0.1:11434');
+    if (!candidateBases.includes('http://localhost:11434')) candidateBases.push('http://localhost:11434');
 
-      if (!res.ok) {
-        const txt = await res.text().catch(() => '');
-        throw new Error(`HTTP ${res.status}: ${txt}`);
+    let lastError = null;
+
+    for (const base of candidateBases) {
+      // 1. Try /api/chat
+      try {
+        const start = performance.now();
+        const res = await fetch(`${base}/api/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: 'user', content: 'Say "Ready" in one word.' }],
+            stream: false
+          })
+        });
+
+        if (res.ok) {
+          const json = await res.json();
+          const latency = Math.round(performance.now() - start);
+          const reply = json.message?.content?.trim() || 'OK';
+          ollamaEndpoint.value = base;
+          ollamaStatusBadge.textContent = `✅ Ping Success (${latency}ms at ${base})! "${reply}"`;
+          ollamaStatusBadge.className = 'engine-status-badge status-ok';
+          await chrome.storage.local.set({ ollamaEndpoint: base, ollamaModel: model });
+          return;
+        } else if (res.status === 403) {
+          lastError = new Error('HTTP 403 Forbidden. Ollama rejected cross-origin request.');
+        } else {
+          const txt = await res.text().catch(() => '');
+          lastError = new Error(`HTTP ${res.status}: ${txt}`);
+        }
+      } catch (err) {
+        lastError = err;
       }
 
-      const json = await res.json();
-      const latency = Math.round(performance.now() - start);
-      const reply = json.message?.content?.trim() || 'OK';
-      ollamaStatusBadge.textContent = `✅ Ping Success (${latency}ms)! "${reply}"`;
-      ollamaStatusBadge.className = 'engine-status-badge status-ok';
-    } catch (err) {
-      ollamaStatusBadge.textContent = `❌ Test Failed: ${err.message}`;
-      ollamaStatusBadge.className = 'engine-status-badge status-err';
+      // 2. Try /v1/chat/completions
+      try {
+        const start = performance.now();
+        const res = await fetch(`${base}/v1/chat/completions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: 'user', content: 'Say "Ready"' }],
+            stream: false
+          })
+        });
+
+        if (res.ok) {
+          const json = await res.json();
+          const latency = Math.round(performance.now() - start);
+          const reply = json.choices?.[0]?.message?.content?.trim() || 'OK';
+          ollamaEndpoint.value = base;
+          ollamaStatusBadge.textContent = `✅ Ping Success (${latency}ms at ${base})! "${reply}"`;
+          ollamaStatusBadge.className = 'engine-status-badge status-ok';
+          await chrome.storage.local.set({ ollamaEndpoint: base, ollamaModel: model });
+          return;
+        }
+      } catch (err) {
+        lastError = err;
+      }
     }
+
+    ollamaStatusBadge.textContent = `❌ Ping Failed: ${lastError ? lastError.message : 'Unreachable'}`;
+    ollamaStatusBadge.className = 'engine-status-badge status-err';
   });
 
   // --- Chrome Built-in AI (Gemini Nano) ---
@@ -301,7 +344,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         systemPrompt: 'You are a test assistant. Answer in 1 word.'
       });
       const res = await session.prompt('Say "Ready"');
-      session.destroy();
+      if (session && typeof session.destroy === 'function') session.destroy();
       chromeAiStatus.textContent = `✅ On-Device AI Active! Replied: "${res.trim()}"`;
       chromeAiStatus.className = 'engine-status-badge status-ok';
     } catch (err) {

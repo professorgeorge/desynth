@@ -255,14 +255,32 @@ function sanitizeModelOutput(text) {
 }
 
 export function detectChromeAI() {
-  const aiObj = (typeof ai !== 'undefined' && ai?.languageModel) ||
-                (typeof window !== 'undefined' && window.ai?.languageModel) ||
-                (typeof self !== 'undefined' && self.ai?.languageModel) ||
-                (typeof navigator !== 'undefined' && navigator.ai?.languageModel);
-  if (!aiObj) {
-    return { supported: false, status: 'unavailable', message: 'Prompt API not detected in this context' };
+  const g = typeof globalThis !== 'undefined' ? globalThis : (typeof window !== 'undefined' ? window : (typeof self !== 'undefined' ? self : {}));
+  
+  // 1. W3C Standard Prompt API (Chrome 132+)
+  if (g.LanguageModel) {
+    return {
+      supported: true,
+      status: 'available',
+      model: 'Gemini Nano (W3C LanguageModel)',
+      api: g.LanguageModel,
+      isClass: true
+    };
   }
-  return { supported: true, status: 'available', model: 'Gemini Nano (Chrome Built-in)', api: aiObj };
+
+  // 2. Chrome Preview Prompt API (window.ai.languageModel)
+  const aiObj = g.ai?.languageModel || g.window?.ai?.languageModel || g.navigator?.ai?.languageModel || g.self?.ai?.languageModel;
+  if (aiObj) {
+    return {
+      supported: true,
+      status: 'available',
+      model: 'Gemini Nano (ai.languageModel)',
+      api: aiObj,
+      isClass: false
+    };
+  }
+
+  return { supported: false, status: 'unavailable', message: 'Prompt API not detected in this context' };
 }
 
 export async function fetchOllamaModels(customEndpoint) {

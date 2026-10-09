@@ -170,14 +170,21 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 // Direct Messages from Popup or Content Script
 chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
   if (req.action === 'RUN_HUMANIZE') {
-    (async () => {
+      let tabId = sender?.tab?.id;
+      if (!tabId) {
+        try {
+          const tabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+          if (tabs && tabs[0]) tabId = tabs[0].id;
+        } catch (e) {}
+      }
+
       const storage = await chrome.storage.local.get();
       const result = await humanizeText({
         text: req.text,
         voiceId: req.voiceId || storage.defaultVoice || 'george-orwell',
         mode: req.mode || storage.mode || 'deep',
         provider: req.provider || storage.provider || 'instant',
-        config: { ...storage, tabId: sender?.tab?.id }
+        config: { ...storage, tabId }
       });
 
       const words = req.text.split(/\s+/).filter(Boolean).length;
